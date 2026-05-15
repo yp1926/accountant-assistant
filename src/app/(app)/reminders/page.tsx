@@ -27,9 +27,15 @@ export default function RemindersPage() {
     useState("");
 
   async function fetchReminders() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { data, error } = await supabase
       .from("reminders")
       .select("*")
+      .eq("user_id", user?.id)
       .order("id", { ascending: false });
 
     if (!error && data) {
@@ -88,6 +94,10 @@ export default function RemindersPage() {
 
   async function handleAddReminder() {
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { error } = await supabase
       .from("reminders")
       .insert([
@@ -96,6 +106,7 @@ export default function RemindersPage() {
           message,
           due_date: dueDate,
           status: "pending",
+          user_id: user?.id,
         },
       ]);
 
