@@ -22,9 +22,15 @@ export default function ClientsPage() {
   const [company, setCompany] = useState("");
 
   async function fetchClients() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { data, error } = await supabase
       .from("clients")
       .select("*")
+      .eq("user_id", user?.id)
       .order("id", { ascending: false });
 
     if (!error && data) {
@@ -37,6 +43,11 @@ export default function ClientsPage() {
   }, []);
 
   async function handleAddClient() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { error } = await supabase
       .from("clients")
       .insert([
@@ -45,6 +56,7 @@ export default function ClientsPage() {
           email,
           phone,
           company,
+          user_id: user?.id,
         },
       ]);
 
@@ -69,6 +81,7 @@ export default function ClientsPage() {
 
         {/* Add Client Form */}
         <div className="bg-white p-8 rounded-lg shadow">
+
           <h1 className="text-3xl font-bold mb-6">
             Clients
           </h1>

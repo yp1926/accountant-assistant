@@ -19,13 +19,18 @@ export default function DashboardPage() {
 
   async function fetchDashboardData() {
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     // Clients Count
     const { count: clientsCount } = await supabase
       .from("clients")
       .select("*", {
         count: "exact",
         head: true,
-      });
+      })
+      .eq("user_id", user?.id);
 
     setTotalClients(clientsCount || 0);
 
@@ -36,6 +41,7 @@ export default function DashboardPage() {
         count: "exact",
         head: true,
       })
+      .eq("user_id", user?.id)
       .eq("status", "pending");
 
     setPendingReminders(remindersCount || 0);
