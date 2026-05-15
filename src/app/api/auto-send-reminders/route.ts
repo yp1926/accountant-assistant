@@ -14,12 +14,18 @@ export async function GET() {
 
   try {
 
-    // Get pending reminders
+    // Get today's date
+    const today = new Date()
+      .toISOString()
+      .split("T")[0];
+
+    // Get pending reminders due today
     const { data: reminders, error } =
       await supabase
         .from("reminders")
         .select("*")
-        .eq("status", "pending");
+        .eq("status", "pending")
+        .eq("due_date", today);
 
     if (error) {
       return Response.json({
@@ -60,6 +66,7 @@ export async function GET() {
     return Response.json({
       success: true,
       processed: reminders.length,
+      today,
     });
 
   } catch (error) {
