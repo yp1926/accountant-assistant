@@ -6,6 +6,7 @@ import { createClient } from "@/lib/client";
 type Reminder = {
   id: number;
   client_name: string;
+  client_email: string;
   message: string;
   due_date: string;
   status: string;
@@ -18,6 +19,9 @@ export default function RemindersPage() {
     useState<Reminder[]>([]);
 
   const [clientName, setClientName] =
+    useState("");
+
+  const [clientEmail, setClientEmail] =
     useState("");
 
   const [message, setMessage] =
@@ -50,6 +54,7 @@ export default function RemindersPage() {
   async function handleSendEmail(
     id: number,
     clientName: string,
+    clientEmail: string,
     message: string
   ) {
 
@@ -61,7 +66,7 @@ export default function RemindersPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          to: "yian.papazoglou@gmail.com",
+          to: clientEmail,
           subject: `Reminder for ${clientName}`,
           message,
         }),
@@ -103,6 +108,7 @@ export default function RemindersPage() {
       .insert([
         {
           client_name: clientName,
+          client_email: clientEmail,
           message,
           due_date: dueDate,
           status: "pending",
@@ -116,6 +122,7 @@ export default function RemindersPage() {
       alert("Reminder added!");
 
       setClientName("");
+      setClientEmail("");
       setMessage("");
       setDueDate("");
 
@@ -143,6 +150,15 @@ export default function RemindersPage() {
               value={clientName}
               onChange={(e) =>
                 setClientName(e.target.value)
+              }
+            />
+
+            <input
+              className="border p-3 rounded"
+              placeholder="Client Email"
+              value={clientEmail}
+              onChange={(e) =>
+                setClientEmail(e.target.value)
               }
             />
 
@@ -186,6 +202,7 @@ export default function RemindersPage() {
             <thead>
               <tr className="border-b text-left">
                 <th className="p-3">Client</th>
+                <th className="p-3">Email</th>
                 <th className="p-3">Message</th>
                 <th className="p-3">Due Date</th>
                 <th className="p-3">Status</th>
@@ -201,6 +218,10 @@ export default function RemindersPage() {
                 >
                   <td className="p-3">
                     {reminder.client_name}
+                  </td>
+
+                  <td className="p-3">
+                    {reminder.client_email}
                   </td>
 
                   <td className="p-3">
@@ -222,6 +243,7 @@ export default function RemindersPage() {
                         handleSendEmail(
                           reminder.id,
                           reminder.client_name,
+                          reminder.client_email,
                           reminder.message
                         )
                       }
