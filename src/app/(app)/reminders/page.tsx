@@ -5,6 +5,7 @@ import { createClient } from "@/lib/client";
 
 type Reminder = {
   id: number;
+  client_id: number;
   client_name: string;
   client_email: string;
   message: string;
@@ -21,16 +22,29 @@ type Client = {
 };
 
 export default function RemindersPage() {
+
   const supabase = createClient();
 
   const [reminders, setReminders] =
     useState<Reminder[]>([]);
+
+  const [filteredReminders, setFilteredReminders] =
+    useState<Reminder[]>([]);
+
+  const [searchTerm, setSearchTerm] =
+    useState("");
+
+  const [statusFilter, setStatusFilter] =
+    useState("all");
 
   const [clients, setClients] =
     useState<Client[]>([]);
 
   const [filteredClients, setFilteredClients] =
     useState<Client[]>([]);
+
+  const [selectedClientId, setSelectedClientId] =
+    useState<number | null>(null);
 
   const [clientName, setClientName] =
     useState("");
@@ -68,12 +82,34 @@ export default function RemindersPage() {
 
     const { data, error } = await supabase
       .from("reminders")
-      .select("*")
+      .select(`
+        *,
+        clients (
+          id,
+          name,
+          email
+        )
+      `)
       .eq("user_id", user?.id)
       .order("id", { ascending: false });
 
     if (!error && data) {
-      setReminders(data);
+
+      const formattedReminders = data.map(
+        (reminder: any) => ({
+          ...reminder,
+          client_name:
+            reminder.clients?.name ||
+            reminder.client_name,
+
+          client_email:
+            reminder.clients?.email ||
+            reminder.client_email,
+        })
+      );
+
+      setReminders(formattedReminders);
+      setFilteredReminders(formattedReminders);
     }
   }
 
@@ -81,6 +117,38 @@ export default function RemindersPage() {
     fetchReminders();
     fetchClients();
   }, []);
+
+  useEffect(() => {
+
+    let filtered = reminders.filter((reminder) =>
+      reminder.client_name
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase()) ||
+
+      reminder.client_email
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase()) ||
+
+      reminder.message
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase()) ||
+
+      reminder.status
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase())
+    );
+
+    if (statusFilter !== "all") {
+
+      filtered = filtered.filter(
+        (reminder) =>
+          reminder.status === statusFilter
+      );
+    }
+
+    setFilteredReminders(filtered);
+
+  }, [searchTerm, reminders, statusFilter]);
 
   async function handleSendEmail(
     id: number,
@@ -136,6 +204,7 @@ export default function RemindersPage() {
       .from("reminders")
       .insert([
         {
+          client_id: selectedClientId,
           client_name: clientName,
           client_email: clientEmail,
           message,
@@ -146,16 +215,46 @@ export default function RemindersPage() {
       ]);
 
     if (error) {
+
       alert(error.message);
+
     } else {
 
       alert("Reminder added!");
 
+      setSelectedClientId(null);
       setClientName("");
       setClientEmail("");
       setMessage("");
       setDueDate("");
       setFilteredClients([]);
+
+      fetchReminders();
+    }
+  }
+
+  async function handleDeleteReminder(
+    id: number
+  ) {
+
+    const confirmed = confirm(
+      "Are you sure you want to delete this reminder?"
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("reminders")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+
+      alert(error.message);
+
+    } else {
+
+      alert("Reminder deleted!");
 
       fetchReminders();
     }
@@ -173,13 +272,15 @@ export default function RemindersPage() {
     const filtered = clients.filter((client) =>
       client.name
         .toLowerCase()
-        .includes(value.toLowerCase())
+        .startsWith(value.toLowerCase())
     );
 
     setFilteredClients(filtered);
   }
 
   function selectClient(client: Client) {
+
+    setSelectedClientId(client.id);
 
     setClientName(client.name);
     setClientEmail(client.email);
@@ -272,9 +373,47 @@ export default function RemindersPage() {
         {/* Reminder List */}
         <div className="bg-white p-8 rounded-lg shadow overflow-x-auto">
 
-          <h2 className="text-2xl font-bold mb-6">
-            Reminder List
-          </h2>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+
+            <h2 className="text-2xl font-bold">
+              Reminder List
+            </h2>
+
+            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+
+              <input
+                className="border p-3 rounded w-full md:w-80"
+                placeholder="Search reminders..."
+                value={searchTerm}
+                onChange={(e) =>
+                  setSearchTerm(e.target.value)
+                }
+              />
+
+              <select
+                className="border p-3 rounded"
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value)
+                }
+              >
+                <option value="all">
+                  All Statuses
+                </option>
+
+                <option value="pending">
+                  Pending
+                </option>
+
+                <option value="sent">
+                  Sent
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
 
           <table className="w-full border-collapse">
 
@@ -290,11 +429,14 @@ export default function RemindersPage() {
             </thead>
 
             <tbody>
-              {reminders.map((reminder) => (
+
+              {filteredReminders.map((reminder) => (
+
                 <tr
                   key={reminder.id}
                   className="border-b"
                 >
+
                   <td className="p-3">
                     {reminder.client_name}
                   </td>
@@ -317,24 +459,40 @@ export default function RemindersPage() {
 
                   <td className="p-3">
 
-                    <button
-                      onClick={() =>
-                        handleSendEmail(
-                          reminder.id,
-                          reminder.client_name,
-                          reminder.client_email,
-                          reminder.message
-                        )
-                      }
-                      className="bg-black text-white px-3 py-2 rounded"
-                    >
-                      Send Email
-                    </button>
+                    <div className="flex flex-col gap-2">
+
+                      <button
+                        onClick={() =>
+                          handleSendEmail(
+                            reminder.id,
+                            reminder.client_name,
+                            reminder.client_email,
+                            reminder.message
+                          )
+                        }
+                        className="bg-black text-white px-3 py-2 rounded"
+                      >
+                        Send Email
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          handleDeleteReminder(
+                            reminder.id
+                          )
+                        }
+                        className="bg-red-600 text-white px-3 py-2 rounded"
+                      >
+                        Delete
+                      </button>
+
+                    </div>
 
                   </td>
 
                 </tr>
               ))}
+
             </tbody>
 
           </table>

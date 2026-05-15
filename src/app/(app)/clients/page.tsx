@@ -12,9 +12,20 @@ type Client = {
 };
 
 export default function ClientsPage() {
+
   const supabase = createClient();
 
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] =
+    useState<Client[]>([]);
+
+  const [filteredClients, setFilteredClients] =
+    useState<Client[]>([]);
+
+  const [searchTerm, setSearchTerm] =
+    useState("");
+
+  const [editingClientId, setEditingClientId] =
+    useState<number | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,13 +45,35 @@ export default function ClientsPage() {
       .order("id", { ascending: false });
 
     if (!error && data) {
+
       setClients(data);
+      setFilteredClients(data);
     }
   }
 
   useEffect(() => {
     fetchClients();
   }, []);
+
+  useEffect(() => {
+
+    const filtered = clients.filter((client) =>
+      client.name
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase()) ||
+
+      client.email
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase()) ||
+
+      client.company
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase())
+    );
+
+    setFilteredClients(filtered);
+
+  }, [searchTerm, clients]);
 
   async function handleAddClient() {
 
@@ -61,8 +94,11 @@ export default function ClientsPage() {
       ]);
 
     if (error) {
+
       alert(error.message);
+
     } else {
+
       alert("Client added!");
 
       setName("");
@@ -72,6 +108,85 @@ export default function ClientsPage() {
 
       fetchClients();
     }
+  }
+
+  async function handleUpdateClient(
+    client: Client
+  ) {
+
+    const { error } = await supabase
+      .from("clients")
+      .update({
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        company: client.company,
+      })
+      .eq("id", client.id);
+
+    if (error) {
+
+      alert(error.message);
+
+    } else {
+
+      alert("Client updated!");
+
+      setEditingClientId(null);
+
+      fetchClients();
+    }
+  }
+
+  async function handleDeleteClient(
+    id: number
+  ) {
+
+    const confirmed = confirm(
+      "Are you sure you want to delete this client?"
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("clients")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+
+      alert(
+        "Cannot delete client with existing reminders."
+      );
+
+      console.log(
+        "Delete blocked by relational protection."
+      );
+
+    } else {
+
+      alert("Client deleted!");
+
+      fetchClients();
+    }
+  }
+
+  function handleClientChange(
+    id: number,
+    field: keyof Client,
+    value: string
+  ) {
+
+    setClients((prevClients) =>
+      prevClients.map((client) =>
+        client.id === id
+          ? {
+              ...client,
+              [field]: value,
+            }
+          : client
+      )
+    );
   }
 
   return (
@@ -92,28 +207,36 @@ export default function ClientsPage() {
               className="border p-3 rounded"
               placeholder="Client Name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
             />
 
             <input
               className="border p-3 rounded"
               placeholder="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
             />
 
             <input
               className="border p-3 rounded"
               placeholder="Phone"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) =>
+                setPhone(e.target.value)
+              }
             />
 
             <input
               className="border p-3 rounded"
               placeholder="Company"
               value={company}
-              onChange={(e) => setCompany(e.target.value)}
+              onChange={(e) =>
+                setCompany(e.target.value)
+              }
             />
 
           </div>
@@ -126,12 +249,25 @@ export default function ClientsPage() {
           </button>
         </div>
 
-        {/* Clients Table */}
+        {/* Client List */}
         <div className="bg-white p-8 rounded-lg shadow overflow-x-auto">
 
-          <h2 className="text-2xl font-bold mb-6">
-            Client List
-          </h2>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+
+            <h2 className="text-2xl font-bold">
+              Client List
+            </h2>
+
+            <input
+              className="border p-3 rounded w-full md:w-80"
+              placeholder="Search clients..."
+              value={searchTerm}
+              onChange={(e) =>
+                setSearchTerm(e.target.value)
+              }
+            />
+
+          </div>
 
           <table className="w-full border-collapse">
 
@@ -141,21 +277,151 @@ export default function ClientsPage() {
                 <th className="p-3">Email</th>
                 <th className="p-3">Phone</th>
                 <th className="p-3">Company</th>
+                <th className="p-3">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {clients.map((client) => (
+
+              {filteredClients.map((client) => (
+
                 <tr
                   key={client.id}
                   className="border-b"
                 >
-                  <td className="p-3">{client.name}</td>
-                  <td className="p-3">{client.email}</td>
-                  <td className="p-3">{client.phone}</td>
-                  <td className="p-3">{client.company}</td>
+
+                  <td className="p-3">
+
+                    {editingClientId === client.id ? (
+
+                      <input
+                        className="border p-2 rounded w-full"
+                        value={client.name}
+                        onChange={(e) =>
+                          handleClientChange(
+                            client.id,
+                            "name",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    ) : (
+                      client.name
+                    )}
+
+                  </td>
+
+                  <td className="p-3">
+
+                    {editingClientId === client.id ? (
+
+                      <input
+                        className="border p-2 rounded w-full"
+                        value={client.email}
+                        onChange={(e) =>
+                          handleClientChange(
+                            client.id,
+                            "email",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    ) : (
+                      client.email
+                    )}
+
+                  </td>
+
+                  <td className="p-3">
+
+                    {editingClientId === client.id ? (
+
+                      <input
+                        className="border p-2 rounded w-full"
+                        value={client.phone}
+                        onChange={(e) =>
+                          handleClientChange(
+                            client.id,
+                            "phone",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    ) : (
+                      client.phone
+                    )}
+
+                  </td>
+
+                  <td className="p-3">
+
+                    {editingClientId === client.id ? (
+
+                      <input
+                        className="border p-2 rounded w-full"
+                        value={client.company}
+                        onChange={(e) =>
+                          handleClientChange(
+                            client.id,
+                            "company",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    ) : (
+                      client.company
+                    )}
+
+                  </td>
+
+                  <td className="p-3">
+
+                    {editingClientId === client.id ? (
+
+                      <button
+                        onClick={() =>
+                          handleUpdateClient(client)
+                        }
+                        className="bg-green-600 text-white px-3 py-2 rounded"
+                      >
+                        Save
+                      </button>
+
+                    ) : (
+
+                      <div className="flex flex-col gap-2">
+
+                        <button
+                          onClick={() =>
+                            setEditingClientId(client.id)
+                          }
+                          className="bg-black text-white px-3 py-2 rounded"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleDeleteClient(client.id)
+                          }
+                          className="bg-red-600 text-white px-3 py-2 rounded"
+                        >
+                          Delete
+                        </button>
+
+                      </div>
+
+                    )}
+
+                  </td>
+
                 </tr>
               ))}
+
             </tbody>
 
           </table>
