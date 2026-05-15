@@ -12,11 +12,25 @@ type Reminder = {
   status: string;
 };
 
+type Client = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+};
+
 export default function RemindersPage() {
   const supabase = createClient();
 
   const [reminders, setReminders] =
     useState<Reminder[]>([]);
+
+  const [clients, setClients] =
+    useState<Client[]>([]);
+
+  const [filteredClients, setFilteredClients] =
+    useState<Client[]>([]);
 
   const [clientName, setClientName] =
     useState("");
@@ -29,6 +43,22 @@ export default function RemindersPage() {
 
   const [dueDate, setDueDate] =
     useState("");
+
+  async function fetchClients() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("user_id", user?.id);
+
+    if (!error && data) {
+      setClients(data);
+    }
+  }
 
   async function fetchReminders() {
 
@@ -49,6 +79,7 @@ export default function RemindersPage() {
 
   useEffect(() => {
     fetchReminders();
+    fetchClients();
   }, []);
 
   async function handleSendEmail(
@@ -77,7 +108,6 @@ export default function RemindersPage() {
 
     if (result.success) {
 
-      // Update reminder status
       await supabase
         .from("reminders")
         .update({
@@ -85,7 +115,6 @@ export default function RemindersPage() {
         })
         .eq("id", id);
 
-      // Refresh reminders
       fetchReminders();
 
       alert("Email sent!");
@@ -119,15 +148,43 @@ export default function RemindersPage() {
     if (error) {
       alert(error.message);
     } else {
+
       alert("Reminder added!");
 
       setClientName("");
       setClientEmail("");
       setMessage("");
       setDueDate("");
+      setFilteredClients([]);
 
       fetchReminders();
     }
+  }
+
+  function handleClientSearch(value: string) {
+
+    setClientName(value);
+
+    if (value.length === 0) {
+      setFilteredClients([]);
+      return;
+    }
+
+    const filtered = clients.filter((client) =>
+      client.name
+        .toLowerCase()
+        .includes(value.toLowerCase())
+    );
+
+    setFilteredClients(filtered);
+  }
+
+  function selectClient(client: Client) {
+
+    setClientName(client.name);
+    setClientEmail(client.email);
+
+    setFilteredClients([]);
   }
 
   return (
@@ -144,14 +201,36 @@ export default function RemindersPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            <input
-              className="border p-3 rounded"
-              placeholder="Client Name"
-              value={clientName}
-              onChange={(e) =>
-                setClientName(e.target.value)
-              }
-            />
+            <div className="relative">
+
+              <input
+                className="border p-3 rounded w-full"
+                placeholder="Client Name"
+                value={clientName}
+                onChange={(e) =>
+                  handleClientSearch(e.target.value)
+                }
+              />
+
+              {filteredClients.length > 0 && (
+                <div className="absolute bg-white border rounded w-full mt-1 z-10 shadow">
+
+                  {filteredClients.map((client) => (
+                    <div
+                      key={client.id}
+                      onClick={() =>
+                        selectClient(client)
+                      }
+                      className="p-3 hover:bg-gray-100 cursor-pointer"
+                    >
+                      {client.name}
+                    </div>
+                  ))}
+
+                </div>
+              )}
+
+            </div>
 
             <input
               className="border p-3 rounded"
