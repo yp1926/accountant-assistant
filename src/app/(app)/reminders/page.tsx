@@ -31,6 +31,9 @@ export default function RemindersPage() {
   const [filteredReminders, setFilteredReminders] =
     useState<Reminder[]>([]);
 
+  const [editingReminderId, setEditingReminderId] =
+    useState<number | null>(null);
+
   const [searchTerm, setSearchTerm] =
     useState("");
 
@@ -233,6 +236,33 @@ export default function RemindersPage() {
     }
   }
 
+  async function handleUpdateReminder(
+    reminder: Reminder
+  ) {
+
+    const { error } = await supabase
+      .from("reminders")
+      .update({
+        message: reminder.message,
+        due_date: reminder.due_date,
+        status: reminder.status,
+      })
+      .eq("id", reminder.id);
+
+    if (error) {
+
+      alert(error.message);
+
+    } else {
+
+      alert("Reminder updated!");
+
+      setEditingReminderId(null);
+
+      fetchReminders();
+    }
+  }
+
   async function handleDeleteReminder(
     id: number
   ) {
@@ -258,6 +288,24 @@ export default function RemindersPage() {
 
       fetchReminders();
     }
+  }
+
+  function handleReminderChange(
+    id: number,
+    field: keyof Reminder,
+    value: string
+  ) {
+
+    setReminders((prevReminders) =>
+      prevReminders.map((reminder) =>
+        reminder.id === id
+          ? {
+              ...reminder,
+              [field]: value,
+            }
+          : reminder
+      )
+    );
   }
 
   function handleClientSearch(value: string) {
@@ -288,12 +336,73 @@ export default function RemindersPage() {
     setFilteredClients([]);
   }
 
+  function getDueDateColor(
+    dueDate: string,
+    status: string
+  ) {
+
+    if (status === "sent") {
+      return "text-green-600 font-semibold";
+    }
+
+    const today = new Date();
+
+    const due = new Date(dueDate);
+
+    const diffTime =
+      due.getTime() - today.getTime();
+
+    const diffDays = Math.ceil(
+      diffTime / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffDays < 0) {
+      return "text-red-600 font-bold";
+    }
+
+    if (diffDays <= 7) {
+      return "text-yellow-600 font-bold";
+    }
+
+    return "text-green-600 font-semibold";
+  }
+
+  function getDueDateLabel(
+    dueDate: string,
+    status: string
+  ) {
+
+    if (status === "sent") {
+      return "Sent";
+    }
+
+    const today = new Date();
+
+    const due = new Date(dueDate);
+
+    const diffTime =
+      due.getTime() - today.getTime();
+
+    const diffDays = Math.ceil(
+      diffTime / (1000 * 60 * 60 * 24)
+    );
+
+    if (diffDays < 0) {
+      return "Overdue";
+    }
+
+    if (diffDays <= 7) {
+      return "Due Soon";
+    }
+
+    return "Upcoming";
+  }
+
   return (
     <main className="min-h-screen bg-gray-100 p-10">
 
       <div className="max-w-6xl mx-auto space-y-8">
 
-        {/* Add Reminder Form */}
         <div className="bg-white p-8 rounded-lg shadow">
 
           <h1 className="text-3xl font-bold mb-6">
@@ -370,7 +479,6 @@ export default function RemindersPage() {
           </button>
         </div>
 
-        {/* Reminder List */}
         <div className="bg-white p-8 rounded-lg shadow overflow-x-auto">
 
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
@@ -423,6 +531,7 @@ export default function RemindersPage() {
                 <th className="p-3">Email</th>
                 <th className="p-3">Message</th>
                 <th className="p-3">Due Date</th>
+                <th className="p-3">Priority</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Actions</th>
               </tr>
@@ -446,20 +555,150 @@ export default function RemindersPage() {
                   </td>
 
                   <td className="p-3">
-                    {reminder.message}
+
+                    {editingReminderId === reminder.id ? (
+
+                      <input
+                        className="border p-2 rounded w-full"
+                        value={reminder.message}
+                        onChange={(e) =>
+                          handleReminderChange(
+                            reminder.id,
+                            "message",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    ) : (
+                      reminder.message
+                    )}
+
                   </td>
 
                   <td className="p-3">
-                    {reminder.due_date}
+
+                    {editingReminderId === reminder.id ? (
+
+                      <input
+                        type="date"
+                        className="border p-2 rounded w-full"
+                        value={reminder.due_date}
+                        onChange={(e) =>
+                          handleReminderChange(
+                            reminder.id,
+                            "due_date",
+                            e.target.value
+                          )
+                        }
+                      />
+
+                    ) : (
+
+                      <span
+                        className={getDueDateColor(
+                          reminder.due_date,
+                          reminder.status
+                        )}
+                      >
+                        {reminder.due_date}
+                      </span>
+
+                    )}
+
                   </td>
 
-                  <td className="p-3 capitalize">
-                    {reminder.status}
+                  <td className="p-3">
+
+                    <span
+                      className={`px-3 py-1 rounded text-sm text-white ${
+                        getDueDateLabel(
+                          reminder.due_date,
+                          reminder.status
+                        ) === "Overdue"
+                          ? "bg-red-600"
+                          : getDueDateLabel(
+                              reminder.due_date,
+                              reminder.status
+                            ) === "Due Soon"
+                          ? "bg-yellow-500"
+                          : "bg-green-600"
+                      }`}
+                    >
+                      {getDueDateLabel(
+                        reminder.due_date,
+                        reminder.status
+                      )}
+                    </span>
+
+                  </td>
+
+                  <td className="p-3">
+
+                    {editingReminderId === reminder.id ? (
+
+                      <select
+                        className="border p-2 rounded"
+                        value={reminder.status}
+                        onChange={(e) =>
+                          handleReminderChange(
+                            reminder.id,
+                            "status",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="pending">
+                          Pending
+                        </option>
+
+                        <option value="sent">
+                          Sent
+                        </option>
+
+                      </select>
+
+                    ) : (
+
+                      <span className="capitalize">
+                        {reminder.status}
+                      </span>
+
+                    )}
+
                   </td>
 
                   <td className="p-3">
 
                     <div className="flex flex-col gap-2">
+
+                      {editingReminderId === reminder.id ? (
+
+                        <button
+                          onClick={() =>
+                            handleUpdateReminder(
+                              reminder
+                            )
+                          }
+                          className="bg-green-600 text-white px-3 py-2 rounded"
+                        >
+                          Save
+                        </button>
+
+                      ) : (
+
+                        <button
+                          onClick={() =>
+                            setEditingReminderId(
+                              reminder.id
+                            )
+                          }
+                          className="bg-blue-600 text-white px-3 py-2 rounded"
+                        >
+                          Edit
+                        </button>
+
+                      )}
 
                       <button
                         onClick={() =>
