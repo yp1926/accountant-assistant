@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  Menu,
+  X,
 } from "lucide-react";
 
 export default function AppLayout({
@@ -44,6 +46,9 @@ export default function AppLayout({
   const [collapsed, setCollapsed] =
     useState(false);
 
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
+
   const [businessName, setBusinessName] =
     useState("TaxNest");
 
@@ -53,7 +58,6 @@ export default function AppLayout({
       data: { user },
     } = await supabase.auth.getUser();
 
-    // Protect routes
     if (!user) {
 
       router.push("/login");
@@ -61,7 +65,6 @@ export default function AppLayout({
       return;
     }
 
-    // Fetch profile
     const { data } = await supabase
       .from("profiles")
       .select("business_name")
@@ -119,7 +122,6 @@ export default function AppLayout({
     },
   ];
 
-  // Loading State
   if (loading) {
 
     return (
@@ -140,210 +142,342 @@ export default function AppLayout({
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 flex">
+    <main className="min-h-screen bg-gray-100">
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          bg-black text-white flex flex-col justify-between shadow-2xl
-          sticky top-0 h-screen transition-all duration-300
-          ${
-            collapsed
-              ? "w-24 p-4"
-              : "w-72 p-6"
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+
+        <div
+          onClick={() =>
+            setMobileOpen(false)
           }
-        `}
-      >
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+        />
 
-        <div>
+      )}
 
-          {/* Top */}
+      <div className="flex">
+
+        {/* Sidebar */}
+        <aside
+          className={`
+            fixed top-0 left-0 z-50
+            h-screen bg-black text-white shadow-2xl
+            transition-all duration-300
+
+            ${
+              mobileOpen
+                ? "translate-x-0"
+                : "-translate-x-full"
+            }
+
+            lg:translate-x-0
+
+            w-72
+
+            ${
+              collapsed
+                ? "lg:w-24"
+                : "lg:w-72"
+            }
+          `}
+        >
+
           <div
             className={`
-              flex items-center
+              h-full flex flex-col justify-between
               ${
                 collapsed
-                  ? "justify-center"
-                  : "justify-between"
+                  ? "p-4"
+                  : "p-6"
               }
-              mb-12
             `}
           >
 
-            {!collapsed ? (
+            <div>
 
-              <div className="flex items-center gap-3">
+              {/* Top */}
+              <div
+                className={`
+                  flex items-center
+                  ${
+                    collapsed
+                      ? "justify-center"
+                      : "justify-between"
+                  }
+                  mb-12
+                `}
+              >
 
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg">
+                {!collapsed ? (
 
-                  <ShieldCheck size={24} />
+                  <div className="flex items-center gap-3">
+
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg">
+
+                      <ShieldCheck size={24} />
+
+                    </div>
+
+                    <div>
+
+                      <h1 className="text-2xl font-bold tracking-tight">
+
+                        {businessName}
+
+                      </h1>
+
+                      <p className="text-gray-400 text-sm mt-1">
+
+                        Accountant Workspace
+
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                ) : (
+
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg">
+
+                    <ShieldCheck size={24} />
+
+                  </div>
+
+                )}
+
+                {/* Desktop Collapse */}
+                {!collapsed && (
+
+                  <button
+                    onClick={() =>
+                      setCollapsed(true)
+                    }
+                    className="hidden lg:flex text-gray-400 hover:text-white transition"
+                  >
+
+                    <PanelLeftClose size={20} />
+
+                  </button>
+
+                )}
+
+                {/* Mobile Close */}
+                <button
+                  onClick={() =>
+                    setMobileOpen(false)
+                  }
+                  className="lg:hidden text-gray-400 hover:text-white transition"
+                >
+
+                  <X size={22} />
+
+                </button>
+
+              </div>
+
+              {/* Desktop Expand */}
+              {collapsed && (
+
+                <div className="hidden lg:flex justify-center mb-10">
+
+                  <button
+                    onClick={() =>
+                      setCollapsed(false)
+                    }
+                    className="text-gray-400 hover:text-white transition"
+                  >
+
+                    <PanelLeftOpen size={20} />
+
+                  </button>
 
                 </div>
 
-                <div>
+              )}
 
-                  <h1 className="text-2xl font-bold tracking-tight">
+              {/* Navigation */}
+              <nav className="space-y-3">
 
-                    {businessName}
+                {navigation.map((item) => {
 
-                  </h1>
+                  const Icon = item.icon;
 
-                  <p className="text-gray-400 text-sm mt-1">
+                  const isActive =
+                    pathname === item.href;
 
-                    Accountant Workspace
+                  return (
 
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() =>
+                        setMobileOpen(false)
+                      }
+                      className={`
+                        flex items-center
+                        ${
+                          collapsed
+                            ? "lg:justify-center lg:px-0"
+                            : "gap-3 px-4"
+                        }
+                        py-3 rounded-2xl transition-all duration-200
+                        ${
+                          isActive
+                            ? "bg-white text-black font-semibold shadow-lg"
+                            : "hover:bg-gray-900 text-gray-300 hover:text-white"
+                        }
+                      `}
+                    >
+
+                      <Icon size={20} />
+
+                      <span
+                        className={`
+                          ${
+                            collapsed
+                              ? "lg:hidden"
+                              : "block"
+                          }
+                        `}
+                      >
+
+                        {item.name}
+
+                      </span>
+
+                    </Link>
+                  );
+                })}
+
+              </nav>
+
+            </div>
+
+            {/* Footer */}
+            <div className="space-y-4">
+
+              {!collapsed && (
+
+                <div className="hidden lg:block border border-gray-800 rounded-2xl p-4 bg-gray-950">
+
+                  <p className="text-sm text-gray-400">
+                    TaxNest Platform
+                  </p>
+
+                  <p className="text-white font-semibold mt-2">
+                    Secure accountant CRM workspace.
                   </p>
 
                 </div>
 
-              </div>
+              )}
 
-            ) : (
-
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg">
-
-                <ShieldCheck size={24} />
-
-              </div>
-
-            )}
-
-            {/* Collapse Button */}
-            {!collapsed && (
-
+              {/* Logout */}
               <button
-                onClick={() =>
-                  setCollapsed(true)
-                }
-                className="text-gray-400 hover:text-white transition"
+                onClick={handleLogout}
+                className={`
+                  w-full flex items-center
+                  ${
+                    collapsed
+                      ? "lg:justify-center lg:px-0"
+                      : "justify-center gap-2 px-4"
+                  }
+                  bg-white text-black py-3 rounded-2xl font-semibold hover:bg-gray-200 transition-all duration-200
+                `}
               >
 
-                <PanelLeftClose size={20} />
+                <LogOut size={18} />
 
-              </button>
-
-            )}
-
-          </div>
-
-          {/* Expand Button */}
-          {collapsed && (
-
-            <div className="flex justify-center mb-10">
-
-              <button
-                onClick={() =>
-                  setCollapsed(false)
-                }
-                className="text-gray-400 hover:text-white transition"
-              >
-
-                <PanelLeftOpen size={20} />
-
-              </button>
-
-            </div>
-
-          )}
-
-          {/* Navigation */}
-          <nav className="space-y-3">
-
-            {navigation.map((item) => {
-
-              const Icon = item.icon;
-
-              const isActive =
-                pathname === item.href;
-
-              return (
-
-                <Link
-                  key={item.name}
-                  href={item.href}
+                <span
                   className={`
-                    flex items-center
                     ${
                       collapsed
-                        ? "justify-center px-0"
-                        : "gap-3 px-4"
-                    }
-                    py-3 rounded-2xl transition-all duration-200
-                    ${
-                      isActive
-                        ? "bg-white text-black font-semibold shadow-lg"
-                        : "hover:bg-gray-900 text-gray-300 hover:text-white"
+                        ? "lg:hidden"
+                        : "block"
                     }
                   `}
                 >
 
-                  <Icon size={20} />
+                  Logout
 
-                  {!collapsed && (
+                </span>
 
-                    <span>
-                      {item.name}
-                    </span>
-
-                  )}
-
-                </Link>
-              );
-            })}
-
-          </nav>
-
-        </div>
-
-        {/* Footer */}
-        <div className="space-y-4">
-
-          {!collapsed && (
-
-            <div className="border border-gray-800 rounded-2xl p-4 bg-gray-950">
-
-              <p className="text-sm text-gray-400">
-                TaxNest Platform
-              </p>
-
-              <p className="text-white font-semibold mt-2">
-                Secure accountant CRM workspace.
-              </p>
+              </button>
 
             </div>
 
-          )}
+          </div>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className={`
-              w-full flex items-center
-              ${
-                collapsed
-                  ? "justify-center px-0"
-                  : "justify-center gap-2 px-4"
+        </aside>
+
+        {/* Main Area */}
+        <div
+          className={`
+            flex-1 flex flex-col min-h-screen
+            transition-all duration-300
+
+            ${
+              collapsed
+                ? "lg:ml-24"
+                : "lg:ml-72"
+            }
+          `}
+        >
+
+          {/* Mobile Topbar */}
+          <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+
+            <div className="flex items-center gap-3">
+
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white">
+
+                <ShieldCheck size={20} />
+
+              </div>
+
+              <div>
+
+                <h1 className="font-bold">
+                  TaxNest
+                </h1>
+
+                <p className="text-xs text-gray-500">
+                  Workspace
+                </p>
+
+              </div>
+
+            </div>
+
+            <button
+              onClick={() =>
+                setMobileOpen(true)
               }
-              bg-white text-black py-3 rounded-2xl font-semibold hover:bg-gray-200 transition-all duration-200
-            `}
-          >
+              className="text-slate-700"
+            >
 
-            <LogOut size={18} />
+              <Menu size={24} />
 
-            {!collapsed && "Logout"}
+            </button>
 
-          </button>
+          </header>
+
+          {/* Main Content */}
+          <section className="flex-1 w-full overflow-x-hidden p-4 sm:p-6 lg:p-8">
+
+            <div className="w-full max-w-full">
+
+              {children}
+
+            </div>
+
+          </section>
 
         </div>
 
-      </aside>
-
-      {/* Main Content */}
-      <section className="flex-1 p-8 overflow-y-auto h-screen">
-
-        {children}
-
-      </section>
+      </div>
 
     </main>
   );
