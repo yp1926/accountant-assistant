@@ -1,13 +1,25 @@
 "use client";
 
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
+
 import { createClient } from "@/lib/client";
 
 import {
   LayoutDashboard,
   Users,
   Bell,
+  FolderOpen,
+  Settings,
   LogOut,
 } from "lucide-react";
 
@@ -22,6 +34,33 @@ export default function AppLayout({
   const router = useRouter();
 
   const pathname = usePathname();
+
+  const [businessName, setBusinessName] =
+    useState("Accountant AI");
+
+  async function fetchProfile() {
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("business_name")
+      .eq("id", user?.id)
+      .single();
+
+    if (data?.business_name) {
+
+      setBusinessName(
+        data.business_name
+      );
+    }
+  }
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   async function handleLogout() {
 
@@ -46,6 +85,16 @@ export default function AppLayout({
       href: "/reminders",
       icon: Bell,
     },
+    {
+      name: "Documents",
+      href: "/documents",
+      icon: FolderOpen,
+    },
+    {
+      name: "Settings",
+      href: "/settings",
+      icon: Settings,
+    },
   ];
 
   return (
@@ -60,7 +109,7 @@ export default function AppLayout({
           <div className="mb-12">
 
             <h1 className="text-3xl font-bold tracking-tight">
-              Accountant AI
+              {businessName}
             </h1>
 
             <p className="text-gray-400 mt-2 text-sm">

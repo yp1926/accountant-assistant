@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import { createClient } from "@/lib/client";
 
 type Client = {
@@ -42,34 +48,48 @@ export default function ClientsPage() {
       .from("clients")
       .select("*")
       .eq("user_id", user?.id)
-      .order("id", { ascending: false });
+      .order("id", {
+        ascending: false,
+      });
 
     if (!error && data) {
 
       setClients(data);
+
       setFilteredClients(data);
     }
   }
 
   useEffect(() => {
+
     fetchClients();
+
   }, []);
 
   useEffect(() => {
 
-    const filtered = clients.filter((client) =>
-      client.name
-        .toLowerCase()
-        .startsWith(searchTerm.toLowerCase()) ||
+    const filtered =
+      clients.filter(
+        (client) =>
 
-      client.email
-        .toLowerCase()
-        .startsWith(searchTerm.toLowerCase()) ||
+          client.name
+            .toLowerCase()
+            .startsWith(
+              searchTerm.toLowerCase()
+            ) ||
 
-      client.company
-        .toLowerCase()
-        .startsWith(searchTerm.toLowerCase())
-    );
+          client.email
+            .toLowerCase()
+            .startsWith(
+              searchTerm.toLowerCase()
+            ) ||
+
+          client.company
+            .toLowerCase()
+            .startsWith(
+              searchTerm.toLowerCase()
+            )
+      );
 
     setFilteredClients(filtered);
 
@@ -102,8 +122,11 @@ export default function ClientsPage() {
       alert("Client added!");
 
       setName("");
+
       setEmail("");
+
       setPhone("");
+
       setCompany("");
 
       fetchClients();
@@ -177,15 +200,18 @@ export default function ClientsPage() {
     value: string
   ) {
 
-    setClients((prevClients) =>
-      prevClients.map((client) =>
-        client.id === id
-          ? {
-              ...client,
-              [field]: value,
-            }
-          : client
-      )
+    setClients(
+      (prevClients) =>
+        prevClients.map(
+          (client) =>
+            client.id === id
+              ? {
+                  ...client,
+                  [field]:
+                    value,
+                }
+              : client
+        )
     );
   }
 
@@ -208,7 +234,9 @@ export default function ClientsPage() {
               placeholder="Client Name"
               value={name}
               onChange={(e) =>
-                setName(e.target.value)
+                setName(
+                  e.target.value
+                )
               }
             />
 
@@ -217,7 +245,9 @@ export default function ClientsPage() {
               placeholder="Email"
               value={email}
               onChange={(e) =>
-                setEmail(e.target.value)
+                setEmail(
+                  e.target.value
+                )
               }
             />
 
@@ -226,7 +256,9 @@ export default function ClientsPage() {
               placeholder="Phone"
               value={phone}
               onChange={(e) =>
-                setPhone(e.target.value)
+                setPhone(
+                  e.target.value
+                )
               }
             />
 
@@ -235,18 +267,23 @@ export default function ClientsPage() {
               placeholder="Company"
               value={company}
               onChange={(e) =>
-                setCompany(e.target.value)
+                setCompany(
+                  e.target.value
+                )
               }
             />
 
           </div>
 
           <button
-            onClick={handleAddClient}
+            onClick={
+              handleAddClient
+            }
             className="mt-4 bg-black text-white px-6 py-3 rounded"
           >
             Add Client
           </button>
+
         </div>
 
         {/* Client List */}
@@ -263,7 +300,9 @@ export default function ClientsPage() {
               placeholder="Search clients..."
               value={searchTerm}
               onChange={(e) =>
-                setSearchTerm(e.target.value)
+                setSearchTerm(
+                  e.target.value
+                )
               }
             />
 
@@ -272,162 +311,232 @@ export default function ClientsPage() {
           <table className="w-full border-collapse">
 
             <thead>
+
               <tr className="border-b text-left">
-                <th className="p-3">Name</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Phone</th>
-                <th className="p-3">Company</th>
-                <th className="p-3">Actions</th>
+
+                <th className="p-3">
+                  Name
+                </th>
+
+                <th className="p-3">
+                  Email
+                </th>
+
+                <th className="p-3">
+                  Phone
+                </th>
+
+                <th className="p-3">
+                  Company
+                </th>
+
+                <th className="p-3">
+                  Actions
+                </th>
+
               </tr>
+
             </thead>
 
             <tbody>
 
-              {filteredClients.map((client) => (
+              {filteredClients.map(
+                (client) => (
 
-                <tr
-                  key={client.id}
-                  className="border-b"
-                >
+                  <tr
+                    key={
+                      client.id
+                    }
+                    className="border-b"
+                  >
 
-                  <td className="p-3">
+                    {/* Name */}
+                    <td className="p-3">
 
-                    {editingClientId === client.id ? (
+                      {editingClientId ===
+                      client.id ? (
 
-                      <input
-                        className="border p-2 rounded w-full"
-                        value={client.name}
-                        onChange={(e) =>
-                          handleClientChange(
-                            client.id,
-                            "name",
-                            e.target.value
-                          )
-                        }
-                      />
+                        <input
+                          className="border p-2 rounded w-full"
+                          value={
+                            client.name
+                          }
+                          onChange={(
+                            e
+                          ) =>
+                            handleClientChange(
+                              client.id,
+                              "name",
+                              e.target
+                                .value
+                            )
+                          }
+                        />
 
-                    ) : (
-                      client.name
-                    )}
+                      ) : (
 
-                  </td>
+                        <Link
+                          href={`/clients/${client.id}`}
+                          className="font-semibold text-blue-600 hover:underline"
+                        >
+                          {
+                            client.name
+                          }
+                        </Link>
 
-                  <td className="p-3">
+                      )}
 
-                    {editingClientId === client.id ? (
+                    </td>
 
-                      <input
-                        className="border p-2 rounded w-full"
-                        value={client.email}
-                        onChange={(e) =>
-                          handleClientChange(
-                            client.id,
-                            "email",
-                            e.target.value
-                          )
-                        }
-                      />
+                    {/* Email */}
+                    <td className="p-3">
 
-                    ) : (
-                      client.email
-                    )}
+                      {editingClientId ===
+                      client.id ? (
 
-                  </td>
+                        <input
+                          className="border p-2 rounded w-full"
+                          value={
+                            client.email
+                          }
+                          onChange={(
+                            e
+                          ) =>
+                            handleClientChange(
+                              client.id,
+                              "email",
+                              e.target
+                                .value
+                            )
+                          }
+                        />
 
-                  <td className="p-3">
+                      ) : (
+                        client.email
+                      )}
 
-                    {editingClientId === client.id ? (
+                    </td>
 
-                      <input
-                        className="border p-2 rounded w-full"
-                        value={client.phone}
-                        onChange={(e) =>
-                          handleClientChange(
-                            client.id,
-                            "phone",
-                            e.target.value
-                          )
-                        }
-                      />
+                    {/* Phone */}
+                    <td className="p-3">
 
-                    ) : (
-                      client.phone
-                    )}
+                      {editingClientId ===
+                      client.id ? (
 
-                  </td>
+                        <input
+                          className="border p-2 rounded w-full"
+                          value={
+                            client.phone
+                          }
+                          onChange={(
+                            e
+                          ) =>
+                            handleClientChange(
+                              client.id,
+                              "phone",
+                              e.target
+                                .value
+                            )
+                          }
+                        />
 
-                  <td className="p-3">
+                      ) : (
+                        client.phone
+                      )}
 
-                    {editingClientId === client.id ? (
+                    </td>
 
-                      <input
-                        className="border p-2 rounded w-full"
-                        value={client.company}
-                        onChange={(e) =>
-                          handleClientChange(
-                            client.id,
-                            "company",
-                            e.target.value
-                          )
-                        }
-                      />
+                    {/* Company */}
+                    <td className="p-3">
 
-                    ) : (
-                      client.company
-                    )}
+                      {editingClientId ===
+                      client.id ? (
 
-                  </td>
+                        <input
+                          className="border p-2 rounded w-full"
+                          value={
+                            client.company
+                          }
+                          onChange={(
+                            e
+                          ) =>
+                            handleClientChange(
+                              client.id,
+                              "company",
+                              e.target
+                                .value
+                            )
+                          }
+                        />
 
-                  <td className="p-3">
+                      ) : (
+                        client.company
+                      )}
 
-                    {editingClientId === client.id ? (
+                    </td>
 
-                      <button
-                        onClick={() =>
-                          handleUpdateClient(client)
-                        }
-                        className="bg-green-600 text-white px-3 py-2 rounded"
-                      >
-                        Save
-                      </button>
+                    {/* Actions */}
+                    <td className="p-3">
 
-                    ) : (
-
-                      <div className="flex flex-col gap-2">
+                      {editingClientId ===
+                      client.id ? (
 
                         <button
                           onClick={() =>
-                            setEditingClientId(client.id)
+                            handleUpdateClient(
+                              client
+                            )
                           }
-                          className="bg-black text-white px-3 py-2 rounded"
+                          className="bg-green-600 text-white px-3 py-2 rounded"
                         >
-                          Edit
+                          Save
                         </button>
 
-                        <button
-                          onClick={() =>
-                            handleDeleteClient(client.id)
-                          }
-                          className="bg-red-600 text-white px-3 py-2 rounded"
-                        >
-                          Delete
-                        </button>
+                      ) : (
 
-                      </div>
+                        <div className="flex flex-col gap-2">
 
-                    )}
+                          <button
+                            onClick={() =>
+                              setEditingClientId(
+                                client.id
+                              )
+                            }
+                            className="bg-black text-white px-3 py-2 rounded"
+                          >
+                            Edit
+                          </button>
 
-                  </td>
+                          <button
+                            onClick={() =>
+                              handleDeleteClient(
+                                client.id
+                              )
+                            }
+                            className="bg-red-600 text-white px-3 py-2 rounded"
+                          >
+                            Delete
+                          </button>
 
-                </tr>
-              ))}
+                        </div>
+
+                      )}
+
+                    </td>
+
+                  </tr>
+
+                )
+              )}
 
             </tbody>
 
           </table>
+
         </div>
 
       </div>
+
     </main>
   );
 }

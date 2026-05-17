@@ -1,24 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/client";
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-type Reminder = {
-  id: number;
-  client_name: string;
-  message: string;
-  due_date: string;
-  status: string;
+import { createClient } from "@/lib/client";
+
+import { useRouter } from "next/navigation";
+
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+
+type Activity = {
+  type: string;
+  title: string;
+  created_at: string;
 };
 
 export default function DashboardPage() {
 
   const supabase = createClient();
+
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [businessName, setBusinessName] =
+    useState("Accountant AI");
 
   const [totalClients, setTotalClients] =
     useState(0);
@@ -32,11 +41,14 @@ export default function DashboardPage() {
   const [overdueReminders, setOverdueReminders] =
     useState(0);
 
-  const [upcomingReminders, setUpcomingReminders] =
-    useState<Reminder[]>([]);
+  const [dueSoonReminders, setDueSoonReminders] =
+    useState(0);
 
-  const [recentReminders, setRecentReminders] =
-    useState<Reminder[]>([]);
+  const [totalDocuments, setTotalDocuments] =
+    useState(0);
+
+  const [activities, setActivities] =
+    useState<Activity[]>([]);
 
   async function fetchDashboardData() {
 
@@ -44,128 +56,263 @@ export default function DashboardPage() {
       data: { user },
     } = await supabase.auth.getUser();
 
+    if (!user) {
+
+      router.push("/login");
+
+      return;
+    }
+
+    // Profile
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("business_name")
+        .eq("id", user.id)
+        .single();
+
+    if (profile?.business_name) {
+
+      setBusinessName(
+        profile.business_name
+      );
+    }
+
     // Clients Count
-    const { count: clientsCount } = await supabase
-      .from("clients")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
-      .eq("user_id", user?.id);
+    const { count: clientsCount } =
+      await supabase
+        .from("clients")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", user.id);
 
     setTotalClients(clientsCount || 0);
 
-    // Pending Reminders Count
-    const { count: pendingCount } = await supabase
-      .from("reminders")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
-      .eq("user_id", user?.id)
-      .eq("status", "pending");
+    // Pending Reminders
+    const { count: pendingCount } =
+      await supabase
+        .from("reminders")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", user.id)
+        .eq("status", "pending");
 
-    setPendingReminders(pendingCount || 0);
+    setPendingReminders(
+      pendingCount || 0
+    );
 
-    // Sent Reminders Count
-    const { count: sentCount } = await supabase
-      .from("reminders")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
-      .eq("user_id", user?.id)
-      .eq("status", "sent");
+    // Sent Reminders
+    const { count: sentCount } =
+      await supabase
+        .from("reminders")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", user.id)
+        .eq("status", "sent");
 
-    setSentReminders(sentCount || 0);
+    setSentReminders(
+      sentCount || 0
+    );
 
-    // Upcoming Reminders
-    const today = new Date()
-      .toISOString()
-      .split("T")[0];
+    // Documents Count
+    const { count: documentsCount } =
+      await supabase
+        .from("documents")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", user.id);
 
-    const { data: upcomingData } = await supabase
-      .from("reminders")
-      .select("*")
-      .eq("user_id", user?.id)
-      .gte("due_date", today)
-      .order("due_date", {
-        ascending: true,
-      })
-      .limit(5);
+    setTotalDocuments(
+      documentsCount || 0
+    );
 
-    setUpcomingReminders(upcomingData || []);
+    // Due Analytics
+    const { data: reminders } =
+      await supabase
+        .from("reminders")
+        .select("*")
+        .eq("user_id", user.id);
+
+    if (reminders) {
+
+      const today = new Date();
+
+      let overdue = 0;
+
+      let dueSoon = 0;
+
+      reminders.forEach(
+        (reminder) => {
+
+          if (
+            reminder.status === "sent"
+          ) return;
+
+          const dueDate =
+            new Date(
+              reminder.due_date
+            );
+
+          const diffTime =
+            dueDate.getTime() -
+            today.getTime();
+
+          const diffDays =
+            Math.ceil(
+              diffTime /
+              (
+                1000 *
+                60 *
+                60 *
+                24
+              )
+            );
+
+          if (diffDays < 0) {
+
+            overdue++;
+
+          } else if (
+            diffDays <= 7
+          ) {
+
+            dueSoon++;
+          }
+        }
+      );
+
+      setOverdueReminders(
+        overdue
+      );
+
+      setDueSoonReminders(
+        dueSoon
+      );
+    }
+
+    // Recent Clients
+    const { data: recentClients } =
+      await supabase
+        .from("clients")
+        .select("name, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(5);
 
     // Recent Reminders
-    const { data: recentData } = await supabase
-      .from("reminders")
-      .select("*")
-      .eq("user_id", user?.id)
-      .order("id", {
-        ascending: false,
-      })
-      .limit(5);
+    const { data: recentReminders } =
+      await supabase
+        .from("reminders")
+        .select(
+          "client_name, status, created_at"
+        )
+        .eq("user_id", user.id)
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(5);
 
-    setRecentReminders(recentData || []);
+    // Recent Documents
+    const { data: recentDocuments } =
+      await supabase
+        .from("documents")
+        .select(
+          "file_name, created_at"
+        )
+        .eq("user_id", user.id)
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(5);
 
-    // Overdue Reminders
-    const { data: overdueData } = await supabase
-      .from("reminders")
-      .select("*")
-      .eq("user_id", user?.id)
-      .eq("status", "pending")
-      .lt("due_date", today);
+    const clientActivities =
+      (recentClients || []).map(
+        (client: any) => ({
+          type: "client",
+          title:
+            `New client added: ${client.name}`,
+          created_at:
+            client.created_at,
+        })
+      );
 
-    setOverdueReminders(
-      overdueData?.length || 0
+    const reminderActivities =
+      (recentReminders || []).map(
+        (reminder: any) => ({
+          type: "reminder",
+          title:
+            `Reminder ${reminder.status} for ${reminder.client_name}`,
+          created_at:
+            reminder.created_at,
+        })
+      );
+
+    const documentActivities =
+      (recentDocuments || []).map(
+        (doc: any) => ({
+          type: "document",
+          title:
+            `Document uploaded: ${doc.file_name}`,
+          created_at:
+            doc.created_at,
+        })
+      );
+
+    const mergedActivities = [
+      ...clientActivities,
+      ...reminderActivities,
+      ...documentActivities,
+    ];
+
+    mergedActivities.sort(
+      (a, b) =>
+        new Date(
+          b.created_at
+        ).getTime() -
+        new Date(
+          a.created_at
+        ).getTime()
+    );
+
+    setActivities(
+      mergedActivities.slice(0, 10)
     );
   }
 
   useEffect(() => {
 
-    async function checkUser() {
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-
-        router.push("/login");
-
-      } else {
-
-        setEmail(user.email || "");
-      }
-    }
-
-    checkUser();
     fetchDashboardData();
 
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div>
 
-      {/* Top Bar */}
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="mb-10">
 
-        <div>
+        <h1 className="text-3xl font-bold">
+          Dashboard
+        </h1>
 
-          <h2 className="text-3xl font-bold">
-            Dashboard
-          </h2>
-
-          <p className="text-gray-500 mt-1">
-            Logged in as: {email}
-          </p>
-
-        </div>
+        <p className="text-gray-500 mt-2">
+          Welcome back, {businessName}
+        </p>
 
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Analytics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
 
         <Card>
           <CardContent className="p-6">
@@ -223,136 +370,106 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-      </div>
-
-      {/* Upcoming + Recent */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Upcoming Reminders */}
         <Card>
-
           <CardContent className="p-6">
 
-            <h3 className="text-2xl font-bold mb-4">
-              Upcoming Reminders
+            <h3 className="text-gray-500">
+              Due Within 7 Days
             </h3>
 
-            <div className="space-y-4">
-
-              {upcomingReminders.length === 0 ? (
-
-                <p className="text-gray-500">
-                  No upcoming reminders.
-                </p>
-
-              ) : (
-
-                upcomingReminders.map((reminder) => (
-
-                  <div
-                    key={reminder.id}
-                    className="border rounded p-4"
-                  >
-
-                    <div className="flex items-center justify-between">
-
-                      <h4 className="font-semibold">
-                        {reminder.client_name}
-                      </h4>
-
-                      <span className="text-sm text-gray-500">
-                        {reminder.due_date}
-                      </span>
-
-                    </div>
-
-                    <p className="text-gray-600 mt-2">
-                      {reminder.message}
-                    </p>
-
-                    <span
-                      className={`inline-block mt-3 px-3 py-1 rounded text-sm text-white ${
-                        reminder.status === "sent"
-                          ? "bg-green-600"
-                          : "bg-yellow-600"
-                      }`}
-                    >
-                      {reminder.status}
-                    </span>
-
-                  </div>
-                ))
-              )}
-
-            </div>
+            <p className="text-3xl font-bold mt-2 text-orange-500">
+              {dueSoonReminders}
+            </p>
 
           </CardContent>
-
         </Card>
 
-        {/* Recent Activity */}
         <Card>
-
           <CardContent className="p-6">
 
-            <h3 className="text-2xl font-bold mb-4">
+            <h3 className="text-gray-500">
+              Uploaded Documents
+            </h3>
+
+            <p className="text-3xl font-bold mt-2 text-blue-600">
+              {totalDocuments}
+            </p>
+
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* Activity Timeline */}
+      <Card>
+
+        <CardContent className="p-8">
+
+          <div className="flex items-center justify-between mb-6">
+
+            <h2 className="text-2xl font-bold">
               Recent Activity
-            </h3>
+            </h2>
 
-            <div className="space-y-4">
+            <p className="text-sm text-gray-500">
+              Latest CRM actions
+            </p>
 
-              {recentReminders.length === 0 ? (
+          </div>
 
-                <p className="text-gray-500">
-                  No recent activity.
-                </p>
+          <div className="space-y-4">
 
-              ) : (
+            {activities.length === 0 ? (
 
-                recentReminders.map((reminder) => (
+              <p className="text-gray-500">
+                No recent activity yet.
+              </p>
+
+            ) : (
+
+              activities.map(
+                (
+                  activity,
+                  index
+                ) => (
 
                   <div
-                    key={reminder.id}
-                    className="border rounded p-4"
+                    key={index}
+                    className="border rounded-xl p-4 flex items-center justify-between hover:bg-gray-50 transition-all"
                   >
 
-                    <div className="flex items-center justify-between">
+                    <div>
 
-                      <h4 className="font-semibold">
-                        {reminder.client_name}
-                      </h4>
+                      <p className="font-medium">
+                        {activity.title}
+                      </p>
 
-                      <span className="text-sm text-gray-500">
-                        {reminder.due_date}
-                      </span>
+                      <p className="text-sm text-gray-500 capitalize mt-1">
+                        {activity.type}
+                      </p>
 
                     </div>
 
-                    <p className="text-gray-600 mt-2">
-                      {reminder.message}
-                    </p>
+                    <div className="text-sm text-gray-400">
 
-                    <span
-                      className={`inline-block mt-3 px-3 py-1 rounded text-sm text-white ${
-                        reminder.status === "sent"
-                          ? "bg-green-600"
-                          : "bg-yellow-600"
-                      }`}
-                    >
-                      {reminder.status}
-                    </span>
+                      {new Date(
+                        activity.created_at
+                      ).toLocaleDateString()}
+
+                    </div>
 
                   </div>
-                ))
-              )}
 
-            </div>
+                )
+              )
 
-          </CardContent>
+            )}
 
-        </Card>
+          </div>
 
-      </div>
+        </CardContent>
+
+      </Card>
 
     </div>
   );
