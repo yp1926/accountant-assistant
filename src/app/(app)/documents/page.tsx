@@ -9,6 +9,17 @@ import {
 
 import { createClient } from "@/lib/client";
 
+import {
+  FolderOpen,
+  Upload,
+  Search,
+  Download,
+  Trash2,
+  FileText,
+  ImageIcon,
+  FileSpreadsheet,
+} from "lucide-react";
+
 type Client = {
   id: number;
   name: string;
@@ -113,13 +124,13 @@ export default function DocumentsPage() {
 
           doc.file_name
             .toLowerCase()
-            .startsWith(
+            .includes(
               searchTerm.toLowerCase()
             ) ||
 
           doc.clients?.name
             ?.toLowerCase()
-            .startsWith(
+            .includes(
               searchTerm.toLowerCase()
             )
       );
@@ -148,7 +159,6 @@ export default function DocumentsPage() {
       return;
     }
 
-    // Allowed types
     const allowedTypes = [
       "application/pdf",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -157,11 +167,9 @@ export default function DocumentsPage() {
       "image/png",
     ];
 
-    // Max 10MB
     const maxSize =
       10 * 1024 * 1024;
 
-    // Validate file type
     if (
       !allowedTypes.includes(
         selectedFile.type
@@ -169,19 +177,19 @@ export default function DocumentsPage() {
     ) {
 
       alert(
-        "Invalid file type. Allowed: PDF, DOCX, XLSX, JPG, PNG."
+        "Invalid file type."
       );
 
       return;
     }
 
-    // Validate file size
     if (
-      selectedFile.size > maxSize
+      selectedFile.size >
+      maxSize
     ) {
 
       alert(
-        "File too large. Maximum size is 10MB."
+        "File too large."
       );
 
       return;
@@ -204,7 +212,6 @@ export default function DocumentsPage() {
     const filePath =
       `${user?.id}/${fileName}`;
 
-    // Upload file
     const { error: uploadError } =
       await supabase.storage
         .from("documents")
@@ -224,7 +231,6 @@ export default function DocumentsPage() {
       return;
     }
 
-    // Save DB
     const { error: dbError } =
       await supabase
         .from("documents")
@@ -319,22 +325,16 @@ export default function DocumentsPage() {
 
     if (!confirmed) return;
 
-    // Delete file
     await supabase.storage
       .from("documents")
       .remove([
         filePath,
       ]);
 
-    // Delete DB record
     await supabase
       .from("documents")
       .delete()
       .eq("id", id);
-
-    alert(
-      "Document deleted!"
-    );
 
     fetchDocuments();
   }
@@ -347,26 +347,152 @@ export default function DocumentsPage() {
       fileName
         .split(".")
         .pop()
-        ?.toUpperCase();
+        ?.toLowerCase();
 
-    return ext || "FILE";
+    if (
+      ext === "pdf"
+    ) {
+
+      return {
+        label: "PDF",
+        icon: FileText,
+        color:
+          "bg-red-100 text-red-600",
+      };
+    }
+
+    if (
+      ext === "xlsx"
+    ) {
+
+      return {
+        label: "XLSX",
+        icon: FileSpreadsheet,
+        color:
+          "bg-green-100 text-green-600",
+      };
+    }
+
+    if (
+      ext === "png" ||
+      ext === "jpg" ||
+      ext === "jpeg"
+    ) {
+
+      return {
+        label: "IMG",
+        icon: ImageIcon,
+        color:
+          "bg-blue-100 text-blue-600",
+      };
+    }
+
+    return {
+      label: "DOC",
+      icon: FileText,
+      color:
+        "bg-gray-100 text-gray-700",
+    };
   }
 
   return (
     <main className="space-y-8">
 
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-6 sm:p-8 lg:p-10 text-white relative overflow-hidden">
+
+        <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500 rounded-full blur-3xl opacity-20" />
+
+        <div className="relative z-10">
+
+          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 px-4 py-2 rounded-full text-sm mb-6">
+
+            Secure Document Storage
+
+          </div>
+
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+
+            <div>
+
+              <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
+
+                Documents
+
+              </h1>
+
+              <p className="text-blue-100 mt-4 text-lg max-w-2xl leading-relaxed">
+
+                Upload, organize and securely manage accounting documents for clients.
+
+              </p>
+
+            </div>
+
+            <div className="bg-white/10 border border-white/10 backdrop-blur-sm rounded-3xl p-6 min-w-[220px]">
+
+              <div className="flex items-center gap-4">
+
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
+
+                  <FolderOpen size={28} />
+
+                </div>
+
+                <div>
+
+                  <p className="text-blue-100 text-sm">
+                    Total Documents
+                  </p>
+
+                  <h2 className="text-4xl font-bold mt-1">
+
+                    {documents.length}
+
+                  </h2>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
       {/* Upload */}
-      <div className="bg-white p-8 rounded-2xl shadow">
+      <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6 sm:p-8">
 
-        <h1 className="text-3xl font-bold mb-6">
-          Documents
-        </h1>
+        <div className="flex items-center gap-3 mb-8">
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+
+            <Upload size={24} />
+
+          </div>
+
+          <div>
+
+            <h2 className="text-2xl font-bold">
+              Upload Document
+            </h2>
+
+            <p className="text-gray-500 mt-1">
+              Add files securely to client records.
+            </p>
+
+          </div>
+
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* Client */}
           <select
-            className="border p-3 rounded"
+            className="border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
             value={
               selectedClientId
             }
@@ -390,7 +516,9 @@ export default function DocumentsPage() {
                     client.id
                   }
                 >
+
                   {client.name}
+
                 </option>
 
               )
@@ -401,7 +529,7 @@ export default function DocumentsPage() {
           {/* File */}
           <input
             type="file"
-            className="border p-3 rounded"
+            className="border border-gray-300 rounded-2xl px-4 py-3"
             onChange={(e) =>
               setSelectedFile(
                 e.target
@@ -417,7 +545,7 @@ export default function DocumentsPage() {
               handleUpload
             }
             disabled={uploading}
-            className="bg-black text-white rounded px-6 py-3"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 py-3 font-semibold transition"
           >
 
             {uploading
@@ -428,16 +556,14 @@ export default function DocumentsPage() {
 
         </div>
 
-        {/* Info */}
-        <div className="mt-4 text-sm text-gray-500">
+        <div className="mt-5 text-sm text-gray-500 leading-relaxed">
 
-          Allowed:
-          PDF, DOCX, XLSX,
-          JPG, PNG
+          Allowed formats:
+          PDF, DOCX, XLSX, JPG, PNG
 
           <br />
 
-          Max Size:
+          Maximum upload size:
           10MB
 
         </div>
@@ -445,171 +571,214 @@ export default function DocumentsPage() {
       </div>
 
       {/* Documents */}
-      <div className="bg-white p-8 rounded-2xl shadow overflow-x-auto">
+      <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6 sm:p-8 overflow-hidden">
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        {/* Top */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
 
-          <h2 className="text-2xl font-bold">
-            Uploaded Documents
-          </h2>
+          <div>
 
-          <input
-            className="border p-3 rounded w-full md:w-80"
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) =>
-              setSearchTerm(
-                e.target.value
-              )
-            }
-          />
+            <h2 className="text-2xl font-bold">
+              Uploaded Documents
+            </h2>
+
+            <p className="text-gray-500 mt-2">
+              Browse and manage client files securely.
+            </p>
+
+          </div>
+
+          {/* Search */}
+          <div className="relative w-full lg:w-80">
+
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              className="w-full border border-gray-300 rounded-2xl pl-11 pr-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) =>
+                setSearchTerm(
+                  e.target.value
+                )
+              }
+            />
+
+          </div>
 
         </div>
 
-        <table className="w-full border-collapse">
+        {/* Responsive Table */}
+        <div className="overflow-x-auto">
 
-          <thead>
+          <table className="w-full min-w-[1000px]">
 
-            <tr className="border-b text-left">
+            <thead>
 
-              <th className="p-3">
-                Type
-              </th>
+              <tr className="border-b text-left">
 
-              <th className="p-3">
-                File Name
-              </th>
+                <th className="px-4 py-4 font-semibold">
+                  Type
+                </th>
 
-              <th className="p-3">
-                Client
-              </th>
+                <th className="px-4 py-4 font-semibold">
+                  File Name
+                </th>
 
-              <th className="p-3">
-                Size
-              </th>
+                <th className="px-4 py-4 font-semibold">
+                  Client
+                </th>
 
-              <th className="p-3">
-                Uploaded
-              </th>
+                <th className="px-4 py-4 font-semibold">
+                  Size
+                </th>
 
-              <th className="p-3">
-                Actions
-              </th>
+                <th className="px-4 py-4 font-semibold">
+                  Uploaded
+                </th>
 
-            </tr>
+                <th className="px-4 py-4 font-semibold">
+                  Actions
+                </th>
 
-          </thead>
+              </tr>
 
-          <tbody>
+            </thead>
 
-            {filteredDocuments.map(
-              (doc) => (
+            <tbody>
 
-                <tr
-                  key={doc.id}
-                  className="border-b"
-                >
+              {filteredDocuments.map(
+                (doc) => {
 
-                  {/* File Type */}
-                  <td className="p-3">
-
-                    <span className="bg-gray-200 px-3 py-1 rounded text-sm font-medium">
-
-                      {getFileType(
-                        doc.file_name
-                      )}
-
-                    </span>
-
-                  </td>
-
-                  {/* File Name */}
-                  <td className="p-3 font-medium">
-
-                    {
+                  const file =
+                    getFileType(
                       doc.file_name
-                    }
+                    );
 
-                  </td>
+                  const Icon =
+                    file.icon;
 
-                  {/* Client */}
-                  <td className="p-3">
+                  return (
 
-                    <Link
-                      href={`/clients/${doc.clients?.id}`}
-                      className="text-blue-600 font-semibold hover:underline"
+                    <tr
+                      key={doc.id}
+                      className="border-b hover:bg-gray-50 transition"
                     >
 
-                      {
-                        doc.clients
-                          ?.name
-                      }
+                      {/* Type */}
+                      <td className="px-4 py-5">
 
-                    </Link>
+                        <div
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold ${file.color}`}
+                        >
 
-                  </td>
+                          <Icon size={16} />
 
-                  {/* Size */}
-                  <td className="p-3">
+                          {file.label}
 
-                    {(
-                      doc.file_size /
-                      1024
-                    ).toFixed(2)}{" "}
-                    KB
+                        </div>
 
-                  </td>
+                      </td>
 
-                  {/* Date */}
-                  <td className="p-3">
+                      {/* File */}
+                      <td className="px-4 py-5 font-medium">
 
-                    {new Date(
-                      doc.created_at
-                    ).toLocaleDateString()}
+                        {doc.file_name}
 
-                  </td>
+                      </td>
 
-                  {/* Actions */}
-                  <td className="p-3">
+                      {/* Client */}
+                      <td className="px-4 py-5">
 
-                    <div className="flex gap-2">
+                        <Link
+                          href={`/clients/${doc.clients?.id}`}
+                          className="text-blue-600 font-semibold hover:underline"
+                        >
 
-                      <button
-                        onClick={() =>
-                          handleDownload(
-                            doc.file_path,
-                            doc.file_name
-                          )
-                        }
-                        className="bg-black text-white px-3 py-2 rounded"
-                      >
-                        Download
-                      </button>
+                          {
+                            doc.clients
+                              ?.name
+                          }
 
-                      <button
-                        onClick={() =>
-                          handleDelete(
-                            doc.id,
-                            doc.file_path
-                          )
-                        }
-                        className="bg-red-600 text-white px-3 py-2 rounded"
-                      >
-                        Delete
-                      </button>
+                        </Link>
 
-                    </div>
+                      </td>
 
-                  </td>
+                      {/* Size */}
+                      <td className="px-4 py-5">
 
-                </tr>
+                        {(
+                          doc.file_size /
+                          1024
+                        ).toFixed(2)}{" "}
+                        KB
 
-              )
-            )}
+                      </td>
 
-          </tbody>
+                      {/* Date */}
+                      <td className="px-4 py-5">
 
-        </table>
+                        {new Date(
+                          doc.created_at
+                        ).toLocaleDateString()}
+
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-5">
+
+                        <div className="flex flex-wrap gap-2">
+
+                          <button
+                            onClick={() =>
+                              handleDownload(
+                                doc.file_path,
+                                doc.file_name
+                              )
+                            }
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                          >
+
+                            <Download size={16} />
+
+                            Download
+
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              handleDelete(
+                                doc.id,
+                                doc.file_path
+                              )
+                            }
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                          >
+
+                            <Trash2 size={16} />
+
+                            Delete
+
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  );
+                }
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
 
       </div>
 
