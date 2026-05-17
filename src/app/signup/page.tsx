@@ -17,11 +17,14 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-export default function LoginPage() {
+export default function SignupPage() {
 
   const supabase = createClient();
 
   const router = useRouter();
+
+  const [businessName, setBusinessName] =
+    useState("");
 
   const [email, setEmail] =
     useState("");
@@ -35,7 +38,10 @@ export default function LoginPage() {
   const [error, setError] =
     useState("");
 
-  async function handleLogin(
+  const [success, setSuccess] =
+    useState("");
+
+  async function handleSignup(
     e: React.FormEvent
   ) {
 
@@ -45,8 +51,10 @@ export default function LoginPage() {
 
     setError("");
 
-    const { error } =
-      await supabase.auth.signInWithPassword({
+    setSuccess("");
+
+    const { data, error } =
+      await supabase.auth.signUp({
         email,
         password,
       });
@@ -60,7 +68,28 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    // Create profile
+    if (data.user) {
+
+      await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          business_name: businessName,
+        });
+    }
+
+    setSuccess(
+      "Account created successfully. You can now login."
+    );
+
+    setLoading(false);
+
+    setTimeout(() => {
+
+      router.push("/login");
+
+    }, 2000);
   }
 
   return (
@@ -107,15 +136,15 @@ export default function LoginPage() {
 
             <h2 className="text-5xl font-bold leading-tight">
 
-              Manage accounting workflows with confidence.
+              Build your modern accounting workspace.
 
             </h2>
 
             <p className="text-xl text-blue-100 mt-8 leading-relaxed">
 
-              Organize clients, automate reminders and securely
-              manage accounting documents from one intelligent
-              platform.
+              Create your TaxNest account and start managing
+              clients, reminders and accounting workflows from
+              one centralized platform.
 
             </p>
 
@@ -167,23 +196,47 @@ export default function LoginPage() {
 
               <h2 className="text-3xl font-bold text-slate-900">
 
-                Welcome back
+                Create account
 
               </h2>
 
               <p className="text-gray-500 mt-3 leading-relaxed">
 
-                Login to access your accountant dashboard and
-                workspace.
+                Start using TaxNest to manage your accounting
+                workflow professionally.
 
               </p>
 
             </div>
 
             <form
-              onSubmit={handleLogin}
+              onSubmit={handleSignup}
               className="space-y-5"
             >
+
+              {/* Business Name */}
+              <div>
+
+                <label className="block text-sm font-medium mb-2">
+
+                  Business Name
+
+                </label>
+
+                <input
+                  type="text"
+                  required
+                  value={businessName}
+                  onChange={(e) =>
+                    setBusinessName(
+                      e.target.value
+                    )
+                  }
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  placeholder="Your accounting firm"
+                />
+
+              </div>
 
               {/* Email */}
               <div>
@@ -212,28 +265,16 @@ export default function LoginPage() {
               {/* Password */}
               <div>
 
-                <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium mb-2">
 
-                  <label className="text-sm font-medium">
+                  Password
 
-                    Password
-
-                  </label>
-
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-
-                    Forgot password?
-
-                  </Link>
-
-                </div>
+                </label>
 
                 <input
                   type="password"
                   required
+                  minLength={6}
                   value={password}
                   onChange={(e) =>
                     setPassword(
@@ -241,7 +282,7 @@ export default function LoginPage() {
                     )
                   }
                   className="w-full border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                  placeholder="Enter your password"
+                  placeholder="Create a password"
                 />
 
               </div>
@@ -257,7 +298,18 @@ export default function LoginPage() {
 
               )}
 
-              {/* Login Button */}
+              {/* Success */}
+              {success && (
+
+                <div className="bg-green-100 text-green-700 px-4 py-3 rounded-2xl text-sm">
+
+                  {success}
+
+                </div>
+
+              )}
+
+              {/* Signup Button */}
               <button
                 type="submit"
                 disabled={loading}
@@ -265,10 +317,10 @@ export default function LoginPage() {
               >
 
                 {loading
-                  ? "Logging in..."
+                  ? "Creating account..."
                   : (
                     <>
-                      Login
+                      Create Account
 
                       <ArrowRight size={18} />
                     </>
@@ -281,14 +333,14 @@ export default function LoginPage() {
             {/* Footer */}
             <div className="mt-8 text-center text-sm text-gray-500">
 
-              Don’t have an account?{" "}
+              Already have an account?{" "}
 
               <Link
-                href="/signup"
+                href="/login"
                 className="text-blue-600 hover:underline font-medium"
               >
 
-                Create account
+                Login
 
               </Link>
 

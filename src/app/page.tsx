@@ -14,10 +14,10 @@ import {
 export default function HomePage() {
 
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main className="min-h-screen bg-white text-black overflow-hidden">
 
       {/* Navbar */}
-      <header className="border-b bg-white sticky top-0 z-50 h-20 flex items-center">
+      <header className="border-b border-white/10 bg-white/80 backdrop-blur-xl sticky top-0 z-50 h-20 flex items-center">
 
         <div className="w-full max-w-7xl mx-auto px-6 flex items-center justify-between">
 
@@ -28,7 +28,7 @@ export default function HomePage() {
           />
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-700">
 
             <a
               href="#features"
@@ -58,14 +58,14 @@ export default function HomePage() {
 
             <Link
               href="/login"
-              className="px-5 py-2 rounded-lg border hover:bg-gray-100 transition"
+              className="px-5 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-100 transition font-medium"
             >
               Login
             </Link>
 
             <Link
               href="/signup"
-              className="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+              className="px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition font-medium shadow-lg shadow-blue-500/20"
             >
               Get Started
             </Link>
@@ -77,83 +77,88 @@ export default function HomePage() {
       </header>
 
       {/* Hero */}
-      <section className="py-28 px-6 overflow-hidden">
+      <section className="relative py-32 px-6 bg-gradient-to-br from-slate-100 via-white to-blue-100 overflow-hidden">
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+        {/* Ambient Glow */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-300 rounded-full blur-3xl opacity-20" />
+
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-slate-300 rounded-full blur-3xl opacity-10" />
+
+        <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
 
           {/* Left */}
           <div>
 
-            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8">
+            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8 shadow-sm">
 
               Modern Accountant CRM Platform
 
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tight">
+            <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tight text-slate-900">
 
               The modern workspace for accountants.
 
             </h1>
 
-            <p className="text-xl text-gray-600 mt-8 leading-relaxed max-w-2xl">
+            <p className="text-xl text-slate-600 mt-8 leading-relaxed max-w-2xl">
 
               Manage clients, reminders, documents and workflows
               in one intelligent platform built specifically for
-              accounting firms.
+              modern accounting firms.
 
             </p>
 
             {/* Benefits */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-white/70 backdrop-blur-sm border border-white rounded-2xl px-4 py-3 shadow-sm">
 
                 <CheckCircle2
                   size={20}
                   className="text-blue-600"
                 />
 
-                <span>
+                <span className="font-medium">
                   Smart reminders
                 </span>
 
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-white/70 backdrop-blur-sm border border-white rounded-2xl px-4 py-3 shadow-sm">
 
                 <CheckCircle2
                   size={20}
                   className="text-blue-600"
                 />
 
-                <span>
+                <span className="font-medium">
                   Secure cloud storage
                 </span>
 
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-white/70 backdrop-blur-sm border border-white rounded-2xl px-4 py-3 shadow-sm">
 
                 <CheckCircle2
                   size={20}
                   className="text-blue-600"
                 />
 
-                <span>
+                <span className="font-medium">
                   Client CRM
                 </span>
 
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-white/70 backdrop-blur-sm border border-white rounded-2xl px-4 py-3 shadow-sm">
 
                 <CheckCircle2
                   size={20}
                   className="text-blue-600"
                 />
 
-                <span>
+                <span className="font-medium">
                   Workflow automation
                 </span>
 
@@ -166,7 +171,7 @@ export default function HomePage() {
 
               <Link
                 href="/signup"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition shadow-xl shadow-blue-500/20"
               >
 
                 Start Free
@@ -177,7 +182,7 @@ export default function HomePage() {
 
               <Link
                 href="/login"
-                className="border border-gray-300 hover:bg-gray-100 px-8 py-4 rounded-xl font-semibold transition text-center"
+                className="border border-gray-300 bg-white/80 backdrop-blur-sm hover:bg-white px-8 py-4 rounded-2xl font-semibold transition text-center"
               >
                 Login
               </Link>
@@ -189,11 +194,11 @@ export default function HomePage() {
           {/* Right */}
           <div className="relative">
 
-            <div className="absolute -top-20 -right-20 w-72 h-72 bg-blue-200 rounded-full blur-3xl opacity-40" />
+            <div className="absolute -top-20 -right-20 w-72 h-72 bg-blue-300 rounded-full blur-3xl opacity-40" />
 
-            <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-8 shadow-2xl relative">
+            <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-[32px] p-8 shadow-2xl relative border border-white/10">
 
-              <div className="bg-white rounded-2xl p-6 space-y-6">
+              <div className="bg-white rounded-3xl p-6 space-y-6 shadow-2xl">
 
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -221,7 +226,7 @@ export default function HomePage() {
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-4">
 
-                  <div className="bg-gray-100 rounded-xl p-4">
+                  <div className="bg-gray-100 rounded-2xl p-4">
 
                     <p className="text-gray-500 text-sm">
                       Clients
@@ -233,7 +238,7 @@ export default function HomePage() {
 
                   </div>
 
-                  <div className="bg-gray-100 rounded-xl p-4">
+                  <div className="bg-gray-100 rounded-2xl p-4">
 
                     <p className="text-gray-500 text-sm">
                       Pending
@@ -250,7 +255,7 @@ export default function HomePage() {
                 {/* Activity */}
                 <div className="space-y-3">
 
-                  <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-between">
+                  <div className="bg-gray-100 rounded-xl p-3 flex items-center justify-between">
 
                     <span className="text-sm">
                       VAT reminder sent
@@ -262,7 +267,7 @@ export default function HomePage() {
 
                   </div>
 
-                  <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-between">
+                  <div className="bg-gray-100 rounded-xl p-3 flex items-center justify-between">
 
                     <span className="text-sm">
                       Client uploaded documents
@@ -274,7 +279,7 @@ export default function HomePage() {
 
                   </div>
 
-                  <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-between">
+                  <div className="bg-gray-100 rounded-xl p-3 flex items-center justify-between">
 
                     <span className="text-sm">
                       Reminder completed
@@ -301,18 +306,24 @@ export default function HomePage() {
       {/* Features */}
       <section
         id="features"
-        className="py-24 bg-gray-50 px-6"
+        className="py-28 bg-white px-6"
       >
 
         <div className="max-w-7xl mx-auto">
 
           <div className="text-center max-w-3xl mx-auto">
 
-            <h2 className="text-4xl font-bold">
+            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+
+              Features
+
+            </div>
+
+            <h2 className="text-5xl font-bold text-slate-900">
               Everything accountants need
             </h2>
 
-            <p className="text-xl text-gray-600 mt-6">
+            <p className="text-xl text-gray-600 mt-6 leading-relaxed">
 
               Built specifically for accounting firms that want
               modern client management and automated workflows.
@@ -321,12 +332,12 @@ export default function HomePage() {
 
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-20">
 
             {/* Feature */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-lg transition">
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-gray-100 border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition duration-300">
 
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+              <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
 
                 <Users size={28} />
 
@@ -346,9 +357,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-lg transition">
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-gray-100 border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition duration-300">
 
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+              <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
 
                 <Bell size={28} />
 
@@ -368,9 +379,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-lg transition">
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-gray-100 border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition duration-300">
 
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+              <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
 
                 <FileText size={28} />
 
@@ -390,9 +401,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature */}
-            <div className="bg-white rounded-2xl p-8 shadow-sm border hover:shadow-lg transition">
+            <div className="bg-white rounded-3xl p-8 shadow-lg shadow-gray-100 border border-gray-100 hover:-translate-y-1 hover:shadow-2xl transition duration-300">
 
-              <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+              <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
 
                 <Shield size={28} />
 
@@ -420,16 +431,24 @@ export default function HomePage() {
       {/* Security */}
       <section
         id="security"
-        className="py-24 px-6"
+        className="py-28 px-6 bg-gradient-to-br from-slate-900 to-blue-900 text-white relative overflow-hidden"
       >
 
-        <div className="max-w-5xl mx-auto text-center">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500 rounded-full blur-3xl opacity-20" />
 
-          <h2 className="text-4xl font-bold">
+        <div className="relative z-10 max-w-5xl mx-auto text-center">
+
+          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 px-4 py-2 rounded-full text-sm mb-6">
+
+            Enterprise Security
+
+          </div>
+
+          <h2 className="text-5xl font-bold">
             Built with security first
           </h2>
 
-          <p className="text-xl text-gray-600 mt-6 leading-relaxed">
+          <p className="text-xl text-blue-100 mt-6 leading-relaxed">
 
             TaxNest uses secure authentication, protected cloud
             storage and row-level access policies to safeguard
@@ -439,13 +458,13 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
 
-            <div className="border rounded-2xl p-8">
+            <div className="bg-white/10 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
 
               <h3 className="font-bold text-xl">
                 Secure Authentication
               </h3>
 
-              <p className="text-gray-600 mt-4">
+              <p className="text-blue-100 mt-4">
 
                 Protected sessions and encrypted login workflows.
 
@@ -453,13 +472,13 @@ export default function HomePage() {
 
             </div>
 
-            <div className="border rounded-2xl p-8">
+            <div className="bg-white/10 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
 
               <h3 className="font-bold text-xl">
                 Private Access
               </h3>
 
-              <p className="text-gray-600 mt-4">
+              <p className="text-blue-100 mt-4">
 
                 Users only access their own clients and documents.
 
@@ -467,13 +486,13 @@ export default function HomePage() {
 
             </div>
 
-            <div className="border rounded-2xl p-8">
+            <div className="bg-white/10 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
 
               <h3 className="font-bold text-xl">
                 Cloud Infrastructure
               </h3>
 
-              <p className="text-gray-600 mt-4">
+              <p className="text-blue-100 mt-4">
 
                 Built for scalability, reliability and security.
 
@@ -490,12 +509,18 @@ export default function HomePage() {
       {/* Pricing */}
       <section
         id="pricing"
-        className="py-24 bg-gray-50 px-6"
+        className="py-28 bg-slate-50 px-6"
       >
 
         <div className="max-w-4xl mx-auto text-center">
 
-          <h2 className="text-4xl font-bold">
+          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+
+            Pricing
+
+          </div>
+
+          <h2 className="text-5xl font-bold text-slate-900">
             Simple pricing
           </h2>
 
@@ -505,7 +530,7 @@ export default function HomePage() {
 
           </p>
 
-          <div className="bg-white border rounded-3xl p-10 mt-16 shadow-sm">
+          <div className="bg-white border border-gray-200 rounded-[32px] p-12 mt-16 shadow-2xl shadow-gray-100">
 
             <div className="inline-block bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-6">
 
@@ -513,7 +538,7 @@ export default function HomePage() {
 
             </div>
 
-            <h3 className="text-5xl font-bold">
+            <h3 className="text-6xl font-bold text-slate-900">
               Free
             </h3>
 
@@ -547,7 +572,7 @@ export default function HomePage() {
 
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold mt-10 transition"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-semibold mt-10 transition shadow-lg shadow-blue-500/20"
             >
 
               Get Started
@@ -563,38 +588,44 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-6">
+      <section className="py-28 px-6 bg-white">
 
-        <div className="max-w-5xl mx-auto bg-slate-900 rounded-3xl p-14 text-center text-white">
+        <div className="max-w-5xl mx-auto bg-gradient-to-br from-slate-900 to-blue-900 rounded-[36px] p-14 text-center text-white relative overflow-hidden">
 
-          <h2 className="text-4xl md:text-5xl font-bold leading-tight">
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500 rounded-full blur-3xl opacity-20" />
 
-            Modernize your accounting workflow.
+          <div className="relative z-10">
 
-          </h2>
+            <h2 className="text-4xl md:text-6xl font-bold leading-tight">
 
-          <p className="text-xl text-gray-300 mt-6 max-w-2xl mx-auto">
+              Modernize your accounting workflow.
 
-            Join the next generation of accounting firms using
-            TaxNest to manage clients, reminders and documents.
+            </h2>
 
-          </p>
+            <p className="text-xl text-blue-100 mt-6 max-w-2xl mx-auto leading-relaxed">
 
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
+              Join the next generation of accounting firms using
+              TaxNest to manage clients, reminders and documents.
 
-            <Link
-              href="/signup"
-              className="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-xl font-semibold transition"
-            >
-              Start Free
-            </Link>
+            </p>
 
-            <Link
-              href="/login"
-              className="border border-gray-600 hover:bg-gray-800 px-8 py-4 rounded-xl font-semibold transition"
-            >
-              Login
-            </Link>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
+
+              <Link
+                href="/signup"
+                className="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-2xl font-semibold transition shadow-lg shadow-blue-500/20"
+              >
+                Start Free
+              </Link>
+
+              <Link
+                href="/login"
+                className="border border-white/20 bg-white/10 hover:bg-white/20 px-8 py-4 rounded-2xl font-semibold transition backdrop-blur-sm"
+              >
+                Login
+              </Link>
+
+            </div>
 
           </div>
 
@@ -603,14 +634,14 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-6 px-6">
+      <footer className="border-t bg-white py-8 px-6">
 
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
 
           {/* Left */}
           <div className="flex flex-col items-center md:items-start gap-1">
 
-            <p className="font-medium text-slate-900">
+            <p className="font-semibold text-slate-900">
               © 2026 TaxNest
             </p>
 

@@ -5,14 +5,39 @@ import {
   useState,
 } from "react";
 
-import { createClient } from "@/lib/client";
+import Link from "next/link";
 
-import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/client";
 
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
+
+import {
+  Users,
+  Bell,
+  CheckCircle2,
+  AlertTriangle,
+  Clock3,
+  FileText,
+  ArrowRight,
+  Upload,
+  UserPlus,
+} from "lucide-react";
+
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 
 type Activity = {
   type: string;
@@ -24,10 +49,8 @@ export default function DashboardPage() {
 
   const supabase = createClient();
 
-  const router = useRouter();
-
   const [businessName, setBusinessName] =
-    useState("Accountant AI");
+    useState("TaxNest");
 
   const [totalClients, setTotalClients] =
     useState(0);
@@ -56,19 +79,12 @@ export default function DashboardPage() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-
-      router.push("/login");
-
-      return;
-    }
-
     // Profile
     const { data: profile } =
       await supabase
         .from("profiles")
         .select("business_name")
-        .eq("id", user.id)
+        .eq("id", user?.id)
         .single();
 
     if (profile?.business_name) {
@@ -86,7 +102,7 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user.id);
+        .eq("user_id", user?.id);
 
     setTotalClients(clientsCount || 0);
 
@@ -98,7 +114,7 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user.id)
+        .eq("user_id", user?.id)
         .eq("status", "pending");
 
     setPendingReminders(
@@ -113,7 +129,7 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user.id)
+        .eq("user_id", user?.id)
         .eq("status", "sent");
 
     setSentReminders(
@@ -128,18 +144,18 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user.id);
+        .eq("user_id", user?.id);
 
     setTotalDocuments(
       documentsCount || 0
     );
 
-    // Due Analytics
+    // Reminder Analytics
     const { data: reminders } =
       await supabase
         .from("reminders")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", user?.id);
 
     if (reminders) {
 
@@ -203,7 +219,7 @@ export default function DashboardPage() {
       await supabase
         .from("clients")
         .select("name, created_at")
-        .eq("user_id", user.id)
+        .eq("user_id", user?.id)
         .order("created_at", {
           ascending: false,
         })
@@ -216,7 +232,7 @@ export default function DashboardPage() {
         .select(
           "client_name, status, created_at"
         )
-        .eq("user_id", user.id)
+        .eq("user_id", user?.id)
         .order("created_at", {
           ascending: false,
         })
@@ -229,7 +245,7 @@ export default function DashboardPage() {
         .select(
           "file_name, created_at"
         )
-        .eq("user_id", user.id)
+        .eq("user_id", user?.id)
         .order("created_at", {
           ascending: false,
         })
@@ -295,125 +311,327 @@ export default function DashboardPage() {
 
   }, []);
 
+  const reminderPieData = [
+    {
+      name: "Pending",
+      value: pendingReminders,
+      color: "#eab308",
+    },
+    {
+      name: "Sent",
+      value: sentReminders,
+      color: "#22c55e",
+    },
+    {
+      name: "Overdue",
+      value: overdueReminders,
+      color: "#ef4444",
+    },
+  ];
+
+  const reminderBarData = [
+    {
+      name: "Pending",
+      value: pendingReminders,
+    },
+    {
+      name: "Sent",
+      value: sentReminders,
+    },
+    {
+      name: "Overdue",
+      value: overdueReminders,
+    },
+    {
+      name: "Due Soon",
+      value: dueSoonReminders,
+    },
+  ];
+
   return (
-    <div>
+    <div className="space-y-10">
 
-      {/* Header */}
-      <div className="mb-10">
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-10 text-white relative overflow-hidden">
 
-        <h1 className="text-3xl font-bold">
-          Dashboard
-        </h1>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full blur-3xl opacity-20" />
 
-        <p className="text-gray-500 mt-2">
-          Welcome back, {businessName}
-        </p>
+        <div className="relative z-10">
 
-      </div>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
 
-      {/* Analytics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div>
 
-        <Card>
-          <CardContent className="p-6">
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 px-4 py-2 rounded-full text-sm mb-6">
 
-            <h3 className="text-gray-500">
-              Total Clients
-            </h3>
+                TaxNest Dashboard
 
-            <p className="text-3xl font-bold mt-2">
-              {totalClients}
-            </p>
+              </div>
 
-          </CardContent>
-        </Card>
+              <h1 className="text-4xl font-bold leading-tight">
 
-        <Card>
-          <CardContent className="p-6">
+                Welcome back,
+                <br />
+                {businessName}
 
-            <h3 className="text-gray-500">
-              Pending Reminders
-            </h3>
+              </h1>
 
-            <p className="text-3xl font-bold mt-2 text-yellow-600">
-              {pendingReminders}
-            </p>
+              <p className="text-blue-100 mt-5 text-lg max-w-2xl leading-relaxed">
 
-          </CardContent>
-        </Card>
+                Monitor reminders, clients and accounting
+                operations from your centralized workspace.
 
-        <Card>
-          <CardContent className="p-6">
+              </p>
 
-            <h3 className="text-gray-500">
-              Sent Reminders
-            </h3>
+            </div>
 
-            <p className="text-3xl font-bold mt-2 text-green-600">
-              {sentReminders}
-            </p>
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 min-w-[320px]">
 
-          </CardContent>
-        </Card>
+              <Link
+                href="/clients"
+                className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl p-5 transition backdrop-blur-sm"
+              >
 
-        <Card>
-          <CardContent className="p-6">
+                <UserPlus size={24} />
 
-            <h3 className="text-gray-500">
-              Overdue Reminders
-            </h3>
+                <h3 className="font-semibold mt-4">
+                  Add Client
+                </h3>
 
-            <p className="text-3xl font-bold mt-2 text-red-600">
-              {overdueReminders}
-            </p>
+                <p className="text-sm text-blue-100 mt-2">
+                  Create a new client profile.
+                </p>
 
-          </CardContent>
-        </Card>
+              </Link>
 
-        <Card>
-          <CardContent className="p-6">
+              <Link
+                href="/reminders"
+                className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl p-5 transition backdrop-blur-sm"
+              >
 
-            <h3 className="text-gray-500">
-              Due Within 7 Days
-            </h3>
+                <Bell size={24} />
 
-            <p className="text-3xl font-bold mt-2 text-orange-500">
-              {dueSoonReminders}
-            </p>
+                <h3 className="font-semibold mt-4">
+                  Add Reminder
+                </h3>
 
-          </CardContent>
-        </Card>
+                <p className="text-sm text-blue-100 mt-2">
+                  Schedule client reminders.
+                </p>
 
-        <Card>
-          <CardContent className="p-6">
+              </Link>
 
-            <h3 className="text-gray-500">
-              Uploaded Documents
-            </h3>
+              <Link
+                href="/documents"
+                className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl p-5 transition backdrop-blur-sm"
+              >
 
-            <p className="text-3xl font-bold mt-2 text-blue-600">
-              {totalDocuments}
-            </p>
+                <Upload size={24} />
 
-          </CardContent>
-        </Card>
+                <h3 className="font-semibold mt-4">
+                  Upload Docs
+                </h3>
+
+                <p className="text-sm text-blue-100 mt-2">
+                  Store client documents securely.
+                </p>
+
+              </Link>
+
+            </div>
+
+          </div>
+
+        </div>
 
       </div>
 
-      {/* Activity Timeline */}
-      <Card>
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+        <AnalyticsCard
+          title="Total Clients"
+          value={totalClients}
+          icon={<Users size={28} />}
+          color="blue"
+        />
+
+        <AnalyticsCard
+          title="Pending Reminders"
+          value={pendingReminders}
+          icon={<Clock3 size={28} />}
+          color="yellow"
+        />
+
+        <AnalyticsCard
+          title="Sent Reminders"
+          value={sentReminders}
+          icon={<CheckCircle2 size={28} />}
+          color="green"
+        />
+
+        <AnalyticsCard
+          title="Overdue"
+          value={overdueReminders}
+          icon={<AlertTriangle size={28} />}
+          color="red"
+        />
+
+        <AnalyticsCard
+          title="Due Within 7 Days"
+          value={dueSoonReminders}
+          icon={<Bell size={28} />}
+          color="orange"
+        />
+
+        <AnalyticsCard
+          title="Documents"
+          value={totalDocuments}
+          icon={<FileText size={28} />}
+          color="blue"
+        />
+
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        {/* Pie Chart */}
+        <Card className="border-0 shadow-md rounded-3xl">
+
+          <CardContent className="p-8">
+
+            <div className="mb-8">
+
+              <h2 className="text-2xl font-bold">
+                Reminder Status
+              </h2>
+
+              <p className="text-gray-500 mt-2">
+                Overview of reminder distribution.
+              </p>
+
+            </div>
+
+            <div className="h-[320px]">
+
+              <ResponsiveContainer width="100%" height="100%">
+
+                <PieChart>
+
+                  <Pie
+                    data={reminderPieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={110}
+                  >
+
+                    {reminderPieData.map(
+                      (
+                        entry,
+                        index
+                      ) => (
+
+                        <Cell
+                          key={index}
+                          fill={entry.color}
+                        />
+
+                      )
+                    )}
+
+                  </Pie>
+
+                  <Tooltip />
+
+                </PieChart>
+
+              </ResponsiveContainer>
+
+            </div>
+
+          </CardContent>
+
+        </Card>
+
+        {/* Bar Chart */}
+        <Card className="border-0 shadow-md rounded-3xl">
+
+          <CardContent className="p-8">
+
+            <div className="mb-8">
+
+              <h2 className="text-2xl font-bold">
+                Reminder Analytics
+              </h2>
+
+              <p className="text-gray-500 mt-2">
+                Operational reminder metrics.
+              </p>
+
+            </div>
+
+            <div className="h-[320px]">
+
+              <ResponsiveContainer width="100%" height="100%">
+
+                <BarChart data={reminderBarData}>
+
+                  <CartesianGrid strokeDasharray="3 3" />
+
+                  <XAxis dataKey="name" />
+
+                  <YAxis />
+
+                  <Tooltip />
+
+                  <Bar
+                    dataKey="value"
+                    radius={[8, 8, 0, 0]}
+                    fill="#2563eb"
+                  />
+
+                </BarChart>
+
+              </ResponsiveContainer>
+
+            </div>
+
+          </CardContent>
+
+        </Card>
+
+      </div>
+
+      {/* Activity Feed */}
+      <Card className="border-0 shadow-md rounded-3xl">
 
         <CardContent className="p-8">
 
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-8">
 
-            <h2 className="text-2xl font-bold">
-              Recent Activity
-            </h2>
+            <div>
 
-            <p className="text-sm text-gray-500">
-              Latest CRM actions
-            </p>
+              <h2 className="text-2xl font-bold">
+                Recent Activity
+              </h2>
+
+              <p className="text-gray-500 mt-2">
+                Latest accounting workflow actions.
+              </p>
+
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 text-blue-600 font-medium">
+
+              View All
+
+              <ArrowRight size={18} />
+
+            </div>
 
           </div>
 
@@ -421,9 +639,13 @@ export default function DashboardPage() {
 
             {activities.length === 0 ? (
 
-              <p className="text-gray-500">
-                No recent activity yet.
-              </p>
+              <div className="text-center py-16">
+
+                <p className="text-gray-500">
+                  No recent activity yet.
+                </p>
+
+              </div>
 
             ) : (
 
@@ -435,17 +657,21 @@ export default function DashboardPage() {
 
                   <div
                     key={index}
-                    className="border rounded-xl p-4 flex items-center justify-between hover:bg-gray-50 transition-all"
+                    className="border rounded-2xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 hover:bg-gray-50 transition"
                   >
 
                     <div>
 
-                      <p className="font-medium">
+                      <p className="font-semibold text-slate-900">
+
                         {activity.title}
+
                       </p>
 
                       <p className="text-sm text-gray-500 capitalize mt-1">
+
                         {activity.type}
+
                       </p>
 
                     </div>
@@ -472,5 +698,60 @@ export default function DashboardPage() {
       </Card>
 
     </div>
+  );
+}
+
+function AnalyticsCard({
+  title,
+  value,
+  icon,
+  color,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+}) {
+
+  const colorClasses: Record<string, string> = {
+    blue: "bg-blue-100 text-blue-600",
+    yellow: "bg-yellow-100 text-yellow-600",
+    green: "bg-green-100 text-green-600",
+    red: "bg-red-100 text-red-600",
+    orange: "bg-orange-100 text-orange-500",
+  };
+
+  return (
+    <Card className="border-0 shadow-md rounded-3xl">
+
+      <CardContent className="p-7">
+
+        <div className="flex items-start justify-between">
+
+          <div>
+
+            <p className="text-gray-500">
+              {title}
+            </p>
+
+            <h2 className="text-4xl font-bold mt-3">
+              {value}
+            </h2>
+
+          </div>
+
+          <div
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClasses[color]}`}
+          >
+
+            {icon}
+
+          </div>
+
+        </div>
+
+      </CardContent>
+
+    </Card>
   );
 }
