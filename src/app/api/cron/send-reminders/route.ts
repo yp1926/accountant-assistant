@@ -16,20 +16,19 @@ export async function GET() {
 
   try {
 
-    // Get today's date
     const today =
       new Date()
         .toISOString()
         .split("T")[0];
 
-    // Fetch pending reminders due today or earlier
+    // Fetch reminders due today or earlier
     const {
       data: reminders,
       error,
     } = await supabase
       .from("reminders")
       .select("*")
-      .eq("status", "pending")
+      .neq("status", "completed")
       .lte("due_date", today);
 
     if (error) {
@@ -44,10 +43,17 @@ export async function GET() {
 
     let sentCount = 0;
 
-    // Process reminders
     for (const reminder of reminders || []) {
 
       try {
+
+        // Prevent duplicate sends
+        if (
+          reminder.status === "sent"
+        ) {
+
+          continue;
+        }
 
         // Send email
         const {
@@ -104,13 +110,20 @@ export async function GET() {
           continue;
         }
 
-        // Update reminder status
+        // Mark as sent only
         await supabase
           .from("reminders")
           .update({
             status: "sent",
+
+            last_sent_at:
+              new Date()
+                .toISOString(),
           })
-          .eq("id", reminder.id);
+          .eq(
+            "id",
+            reminder.id
+          );
 
         sentCount++;
 

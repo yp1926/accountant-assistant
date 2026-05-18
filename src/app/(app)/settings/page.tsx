@@ -5,6 +5,8 @@ import {
   useState,
 } from "react";
 
+import { toast } from "sonner";
+
 import { createClient } from "@/lib/client";
 
 import {
@@ -78,11 +80,13 @@ export default function SettingsPage() {
 
     if (error) {
 
-      alert(error.message);
+      toast.error(
+        error.message
+      );
 
     } else {
 
-      alert(
+      toast.success(
         "Settings updated successfully!"
       );
     }
@@ -191,7 +195,6 @@ export default function SettingsPage() {
 
             <div className="space-y-6">
 
-              {/* Business Name */}
               <div>
 
                 <label className="block mb-3 font-medium text-slate-700">
@@ -213,7 +216,6 @@ export default function SettingsPage() {
 
               </div>
 
-              {/* Brand Color */}
               <div>
 
                 <label className="block mb-3 font-medium text-slate-700">
@@ -263,7 +265,6 @@ export default function SettingsPage() {
 
               </div>
 
-              {/* Save */}
               <button
                 onClick={
                   handleSaveSettings
@@ -361,7 +362,7 @@ export default function SettingsPage() {
 
         </div>
 
-        {/* Sidebar Cards */}
+        {/* Sidebar */}
         <div className="space-y-8">
 
           {/* Branding Preview */}
@@ -391,7 +392,6 @@ export default function SettingsPage() {
 
             <div className="border border-gray-200 rounded-3xl overflow-hidden">
 
-              {/* Preview Header */}
               <div
                 className="h-24"
                 style={{
@@ -400,7 +400,6 @@ export default function SettingsPage() {
                 }}
               />
 
-              {/* Preview Body */}
               <div className="p-5">
 
                 <div className="flex items-center gap-3">

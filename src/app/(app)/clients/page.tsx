@@ -7,6 +7,9 @@ import {
   useState,
 } from "react";
 
+import { toast } from "sonner";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+
 import { createClient } from "@/lib/client";
 
 import {
@@ -52,6 +55,9 @@ export default function ClientsPage() {
 
   const [company, setCompany] =
     useState("");
+
+  const [addingClient, setAddingClient] =
+    useState(false);
 
   async function fetchClients() {
 
@@ -113,9 +119,23 @@ export default function ClientsPage() {
 
   async function handleAddClient() {
 
+    if (
+      !name ||
+      !email
+    ) {
+
+      toast.error(
+        "Name and email are required."
+      );
+
+      return;
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    setAddingClient(true);
 
     const { error } =
       await supabase
@@ -132,7 +152,11 @@ export default function ClientsPage() {
 
     if (error) {
 
-      alert(error.message);
+      setAddingClient(false);
+      
+      toast.error(
+        error.message
+      );
 
     } else {
 
@@ -145,6 +169,11 @@ export default function ClientsPage() {
       setCompany("");
 
       fetchClients();
+
+      toast.success(
+        "Client added successfully!"
+      );
+      setAddingClient(false);
     }
   }
 
@@ -164,26 +193,25 @@ export default function ClientsPage() {
         .eq("id", client.id);
 
     if (error) {
-
-      alert(error.message);
+      toast.error(
+        error.message
+      );
 
     } else {
 
       setEditingClientId(null);
 
       fetchClients();
+
+      toast.success(
+        "Client updated successfully!"
+      );
     }
   }
 
   async function handleDeleteClient(
     id: number
   ) {
-
-    const confirmed = confirm(
-      "Delete this client?"
-    );
-
-    if (!confirmed) return;
 
     const { error } =
       await supabase
@@ -193,13 +221,17 @@ export default function ClientsPage() {
 
     if (error) {
 
-      alert(
+      toast.error(
         "Cannot delete client with reminders."
       );
 
     } else {
 
       fetchClients();
+
+      toast.success(
+        "Client deleted successfully!"
+      );
     }
   }
 
@@ -367,20 +399,22 @@ export default function ClientsPage() {
         </div>
 
         <button
-          onClick={handleAddClient}
-          className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-semibold transition"
-        >
+            onClick={handleAddClient}
+            disabled={addingClient}
+            className="mt-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl transition"
+          >
 
-          Add Client
+            {addingClient
+              ? "Adding Client..."
+              : "Add Client"}
 
-        </button>
+          </button>
 
       </div>
 
       {/* Client Table */}
       <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6 sm:p-8 overflow-hidden">
 
-        {/* Top */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
 
           <div>
@@ -395,7 +429,6 @@ export default function ClientsPage() {
 
           </div>
 
-          {/* Search */}
           <div className="relative w-full lg:w-80">
 
             <Search
@@ -418,233 +451,262 @@ export default function ClientsPage() {
 
         </div>
 
-        {/* Responsive Table */}
-        <div className="overflow-x-auto">
+        {filteredClients.length === 0 ? (
 
-          <table className="w-full min-w-[900px]">
+          <div className="text-center py-16">
 
-            <thead>
+            <Users
+              size={52}
+              className="mx-auto text-gray-300"
+            />
 
-              <tr className="border-b text-left">
+            <h3 className="mt-5 text-xl font-semibold text-slate-800">
 
-                <th className="py-4 px-4 font-semibold text-slate-700">
+              No clients found
 
-                  Name
+            </h3>
 
-                </th>
+            <p className="text-gray-500 mt-2">
 
-                <th className="py-4 px-4 font-semibold text-slate-700">
+              Add your first client to start managing workflows.
 
-                  Email
+            </p>
 
-                </th>
+          </div>
 
-                <th className="py-4 px-4 font-semibold text-slate-700">
+        ) : (
 
-                  Phone
+          <div className="overflow-x-auto">
 
-                </th>
+            <table className="w-full min-w-[900px]">
 
-                <th className="py-4 px-4 font-semibold text-slate-700">
+              <thead>
 
-                  Company
+                <tr className="border-b text-left">
 
-                </th>
+                  <th className="py-4 px-4 font-semibold text-slate-700">
 
-                <th className="py-4 px-4 font-semibold text-slate-700">
+                    Name
 
-                  Actions
+                  </th>
 
-                </th>
+                  <th className="py-4 px-4 font-semibold text-slate-700">
 
-              </tr>
+                    Email
 
-            </thead>
+                  </th>
 
-            <tbody>
+                  <th className="py-4 px-4 font-semibold text-slate-700">
 
-              {filteredClients.map(
-                (client) => (
+                    Phone
 
-                  <tr
-                    key={client.id}
-                    className="border-b hover:bg-gray-50 transition"
-                  >
+                  </th>
 
-                    {/* Name */}
-                    <td className="px-4 py-5">
+                  <th className="py-4 px-4 font-semibold text-slate-700">
 
-                      {editingClientId ===
-                      client.id ? (
+                    Company
 
-                        <input
-                          className="border border-gray-300 rounded-xl px-3 py-2 w-full"
-                          value={client.name}
-                          onChange={(e) =>
-                            handleClientChange(
-                              client.id,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                        />
+                  </th>
 
-                      ) : (
+                  <th className="py-4 px-4 font-semibold text-slate-700">
 
-                        <Link
-                          href={`/clients/${client.id}`}
-                          className="font-semibold text-blue-600 hover:underline"
-                        >
+                    Actions
 
-                          {client.name}
+                  </th>
 
-                        </Link>
+                </tr>
 
-                      )}
+              </thead>
 
-                    </td>
+              <tbody>
 
-                    {/* Email */}
-                    <td className="px-4 py-5">
+                {filteredClients.map(
+                  (client) => (
 
-                      {editingClientId ===
-                      client.id ? (
+                    <tr
+                      key={client.id}
+                      className="border-b hover:bg-gray-50 transition"
+                    >
 
-                        <input
-                          className="border border-gray-300 rounded-xl px-3 py-2 w-full"
-                          value={client.email}
-                          onChange={(e) =>
-                            handleClientChange(
-                              client.id,
-                              "email",
-                              e.target.value
-                            )
-                          }
-                        />
+                      <td className="px-4 py-5">
 
-                      ) : (
-                        client.email
-                      )}
+                        {editingClientId ===
+                        client.id ? (
 
-                    </td>
+                          <input
+                            className="border border-gray-300 rounded-xl px-3 py-2 w-full"
+                            value={client.name}
+                            onChange={(e) =>
+                              handleClientChange(
+                                client.id,
+                                "name",
+                                e.target.value
+                              )
+                            }
+                          />
 
-                    {/* Phone */}
-                    <td className="px-4 py-5">
+                        ) : (
 
-                      {editingClientId ===
-                      client.id ? (
+                          <Link
+                            href={`/clients/${client.id}`}
+                            className="font-semibold text-blue-600 hover:underline"
+                          >
 
-                        <input
-                          className="border border-gray-300 rounded-xl px-3 py-2 w-full"
-                          value={client.phone}
-                          onChange={(e) =>
-                            handleClientChange(
-                              client.id,
-                              "phone",
-                              e.target.value
-                            )
-                          }
-                        />
+                            {client.name}
 
-                      ) : (
-                        client.phone
-                      )}
+                          </Link>
 
-                    </td>
+                        )}
 
-                    {/* Company */}
-                    <td className="px-4 py-5">
+                      </td>
 
-                      {editingClientId ===
-                      client.id ? (
+                      <td className="px-4 py-5">
 
-                        <input
-                          className="border border-gray-300 rounded-xl px-3 py-2 w-full"
-                          value={client.company}
-                          onChange={(e) =>
-                            handleClientChange(
-                              client.id,
-                              "company",
-                              e.target.value
-                            )
-                          }
-                        />
+                        {editingClientId ===
+                        client.id ? (
 
-                      ) : (
-                        client.company
-                      )}
+                          <input
+                            className="border border-gray-300 rounded-xl px-3 py-2 w-full"
+                            value={client.email}
+                            onChange={(e) =>
+                              handleClientChange(
+                                client.id,
+                                "email",
+                                e.target.value
+                              )
+                            }
+                          />
 
-                    </td>
+                        ) : (
+                          client.email
+                        )}
 
-                    {/* Actions */}
-                    <td className="px-4 py-5">
+                      </td>
 
-                      {editingClientId ===
-                      client.id ? (
+                      <td className="px-4 py-5">
 
-                        <button
-                          onClick={() =>
-                            handleUpdateClient(
-                              client
-                            )
-                          }
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition"
-                        >
+                        {editingClientId ===
+                        client.id ? (
 
-                          Save
+                          <input
+                            className="border border-gray-300 rounded-xl px-3 py-2 w-full"
+                            value={client.phone}
+                            onChange={(e) =>
+                              handleClientChange(
+                                client.id,
+                                "phone",
+                                e.target.value
+                              )
+                            }
+                          />
 
-                        </button>
+                        ) : (
+                          client.phone
+                        )}
 
-                      ) : (
+                      </td>
 
-                        <div className="flex items-center gap-3">
+                      <td className="px-4 py-5">
+
+                        {editingClientId ===
+                        client.id ? (
+
+                          <input
+                            className="border border-gray-300 rounded-xl px-3 py-2 w-full"
+                            value={client.company}
+                            onChange={(e) =>
+                              handleClientChange(
+                                client.id,
+                                "company",
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        ) : (
+                          client.company
+                        )}
+
+                      </td>
+
+                      <td className="px-4 py-5">
+
+                        {editingClientId ===
+                        client.id ? (
 
                           <button
                             onClick={() =>
-                              setEditingClientId(
-                                client.id
+                              handleUpdateClient(
+                                client
                               )
                             }
-                            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition"
                           >
 
-                            <Pencil size={16} />
-
-                            Edit
+                            Save
 
                           </button>
 
-                          <button
-                            onClick={() =>
-                              handleDeleteClient(
-                                client.id
-                              )
-                            }
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
-                          >
+                        ) : (
 
-                            <Trash2 size={16} />
+                          <div className="flex items-center gap-3">
 
-                            Delete
+                            <button
+                              onClick={() =>
+                                setEditingClientId(
+                                  client.id
+                                )
+                              }
+                              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                            >
 
-                          </button>
+                              <Pencil size={16} />
 
-                        </div>
+                              Edit
 
-                      )}
+                            </button>
 
-                    </td>
+                            <ConfirmDialog
+                                title="Delete Client"
+                                description="This action will permanently remove the client. This cannot be undone."
+                                confirmText="Delete"
+                                onConfirm={() =>
+                                  handleDeleteClient(
+                                    client.id
+                                  )
+                                }
+                              >
 
-                  </tr>
+                                <button
+                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                                >
 
-                )
-              )}
+                                  <Trash2 size={16} />
 
-            </tbody>
+                                  Delete
 
-          </table>
+                                </button>
 
-        </div>
+                              </ConfirmDialog>
+
+                          </div>
+
+                        )}
+
+                      </td>
+
+                    </tr>
+
+                  )
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )}
 
       </div>
 

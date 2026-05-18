@@ -10,6 +10,8 @@ import {
   useRouter,
 } from "next/navigation";
 
+import { toast } from "sonner";
+
 import { createClient } from "@/lib/client";
 
 import {
@@ -35,12 +37,6 @@ export default function SignupPage() {
   const [loading, setLoading] =
     useState(false);
 
-  const [error, setError] =
-    useState("");
-
-  const [success, setSuccess] =
-    useState("");
-
   async function handleSignup(
     e: React.FormEvent
   ) {
@@ -48,10 +44,6 @@ export default function SignupPage() {
     e.preventDefault();
 
     setLoading(true);
-
-    setError("");
-
-    setSuccess("");
 
     const { data, error } =
       await supabase.auth.signUp({
@@ -61,7 +53,9 @@ export default function SignupPage() {
 
     if (error) {
 
-      setError(error.message);
+      toast.error(
+        error.message
+      );
 
       setLoading(false);
 
@@ -79,8 +73,8 @@ export default function SignupPage() {
         });
     }
 
-    setSuccess(
-      "Account created successfully. You can now login."
+    toast.success(
+      "Account created successfully!"
     );
 
     setLoading(false);
@@ -89,7 +83,7 @@ export default function SignupPage() {
 
       router.push("/login");
 
-    }, 2000);
+    }, 1500);
   }
 
   return (
@@ -286,28 +280,6 @@ export default function SignupPage() {
                 />
 
               </div>
-
-              {/* Error */}
-              {error && (
-
-                <div className="bg-red-100 text-red-700 px-4 py-3 rounded-2xl text-sm">
-
-                  {error}
-
-                </div>
-
-              )}
-
-              {/* Success */}
-              {success && (
-
-                <div className="bg-green-100 text-green-700 px-4 py-3 rounded-2xl text-sm">
-
-                  {success}
-
-                </div>
-
-              )}
 
               {/* Signup Button */}
               <button

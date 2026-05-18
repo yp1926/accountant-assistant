@@ -45,6 +45,14 @@ type Activity = {
   created_at: string;
 };
 
+type UpcomingReminder = {
+  id: number;
+  client_name: string;
+  message: string;
+  due_date: string;
+  status: string;
+};
+
 export default function DashboardPage() {
 
   const supabase = createClient();
@@ -61,6 +69,9 @@ export default function DashboardPage() {
   const [sentReminders, setSentReminders] =
     useState(0);
 
+  const [completedReminders, setCompletedReminders] =
+    useState(0);
+
   const [overdueReminders, setOverdueReminders] =
     useState(0);
 
@@ -72,6 +83,9 @@ export default function DashboardPage() {
 
   const [activities, setActivities] =
     useState<Activity[]>([]);
+
+  const [upcomingReminders, setUpcomingReminders] =
+    useState<UpcomingReminder[]>([]);
 
   async function fetchDashboardData() {
 
@@ -94,7 +108,7 @@ export default function DashboardPage() {
       );
     }
 
-    // Clients Count
+    // Clients
     const { count: clientsCount } =
       await supabase
         .from("clients")
@@ -106,7 +120,7 @@ export default function DashboardPage() {
 
     setTotalClients(clientsCount || 0);
 
-    // Pending Reminders
+    // Pending
     const { count: pendingCount } =
       await supabase
         .from("reminders")
@@ -121,7 +135,7 @@ export default function DashboardPage() {
       pendingCount || 0
     );
 
-    // Sent Reminders
+    // Sent
     const { count: sentCount } =
       await supabase
         .from("reminders")
@@ -136,7 +150,22 @@ export default function DashboardPage() {
       sentCount || 0
     );
 
-    // Documents Count
+    // Completed
+    const { count: completedCount } =
+      await supabase
+        .from("reminders")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", user?.id)
+        .eq("status", "completed");
+
+    setCompletedReminders(
+      completedCount || 0
+    );
+
+    // Documents
     const { count: documentsCount } =
       await supabase
         .from("documents")
@@ -169,7 +198,8 @@ export default function DashboardPage() {
         (reminder) => {
 
           if (
-            reminder.status === "sent"
+            reminder.status ===
+            "completed"
           ) return;
 
           const dueDate =
@@ -211,6 +241,25 @@ export default function DashboardPage() {
 
       setDueSoonReminders(
         dueSoon
+      );
+    }
+
+    // Upcoming Reminders
+    const { data: upcoming } =
+      await supabase
+        .from("reminders")
+        .select("*")
+        .eq("user_id", user?.id)
+        .neq("status", "completed")
+        .order("due_date", {
+          ascending: true,
+        })
+        .limit(5);
+
+    if (upcoming) {
+
+      setUpcomingReminders(
+        upcoming
       );
     }
 
@@ -311,6 +360,65 @@ export default function DashboardPage() {
 
   }, []);
 
+  function getUrgency(
+    dueDate: string
+  ) {
+
+    const today =
+      new Date();
+
+    const due =
+      new Date(dueDate);
+
+    const diffTime =
+      due.getTime() -
+      today.getTime();
+
+    const diffDays =
+      Math.ceil(
+        diffTime /
+        (
+          1000 *
+          60 *
+          60 *
+          24
+        )
+      );
+
+    if (diffDays < 0) {
+
+      return {
+        label: "Overdue",
+        color:
+          "bg-red-100 text-red-700",
+      };
+    }
+
+    if (diffDays === 0) {
+
+      return {
+        label: "Due Today",
+        color:
+          "bg-orange-100 text-orange-700",
+      };
+    }
+
+    if (diffDays <= 7) {
+
+      return {
+        label: "Due Soon",
+        color:
+          "bg-yellow-100 text-yellow-700",
+      };
+    }
+
+    return {
+      label: "Upcoming",
+      color:
+        "bg-green-100 text-green-700",
+    };
+  }
+
   const reminderPieData = [
     {
       name: "Pending",
@@ -320,6 +428,11 @@ export default function DashboardPage() {
     {
       name: "Sent",
       value: sentReminders,
+      color: "#3b82f6",
+    },
+    {
+      name: "Completed",
+      value: completedReminders,
       color: "#22c55e",
     },
     {
@@ -339,6 +452,10 @@ export default function DashboardPage() {
       value: sentReminders,
     },
     {
+      name: "Completed",
+      value: completedReminders,
+    },
+    {
       name: "Overdue",
       value: overdueReminders,
     },
@@ -348,11 +465,27 @@ export default function DashboardPage() {
     },
   ];
 
+  const completionRate =
+    pendingReminders +
+    sentReminders +
+    completedReminders === 0
+      ? 0
+      : Math.round(
+          (
+            completedReminders /
+            (
+              pendingReminders +
+              sentReminders +
+              completedReminders
+            )
+          ) * 100
+        );
+
   return (
     <div className="space-y-10">
 
       {/* Hero */}
-      <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-10 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-6 sm:p-8 lg:p-10 text-white relative overflow-hidden">
 
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full blur-3xl opacity-20" />
 
@@ -378,66 +511,29 @@ export default function DashboardPage() {
 
               <p className="text-blue-100 mt-5 text-lg max-w-2xl leading-relaxed">
 
-                Monitor reminders, clients and accounting
-                operations from your centralized workspace.
+                Monitor reminders, clients and accounting operations from your centralized workspace.
 
               </p>
 
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 min-w-[320px]">
+            <div className="bg-white/10 border border-white/10 backdrop-blur-sm rounded-3xl p-6 min-w-[260px]">
 
-              <Link
-                href="/clients"
-                className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl p-5 transition backdrop-blur-sm"
-              >
+              <p className="text-blue-100 text-sm">
+                Workflow Completion Rate
+              </p>
 
-                <UserPlus size={24} />
+              <h2 className="text-5xl font-bold mt-3">
 
-                <h3 className="font-semibold mt-4">
-                  Add Client
-                </h3>
+                {completionRate}%
 
-                <p className="text-sm text-blue-100 mt-2">
-                  Create a new client profile.
-                </p>
+              </h2>
 
-              </Link>
+              <p className="text-blue-100 mt-3 text-sm">
 
-              <Link
-                href="/reminders"
-                className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl p-5 transition backdrop-blur-sm"
-              >
+                Operational completion efficiency.
 
-                <Bell size={24} />
-
-                <h3 className="font-semibold mt-4">
-                  Add Reminder
-                </h3>
-
-                <p className="text-sm text-blue-100 mt-2">
-                  Schedule client reminders.
-                </p>
-
-              </Link>
-
-              <Link
-                href="/documents"
-                className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl p-5 transition backdrop-blur-sm"
-              >
-
-                <Upload size={24} />
-
-                <h3 className="font-semibold mt-4">
-                  Upload Docs
-                </h3>
-
-                <p className="text-sm text-blue-100 mt-2">
-                  Store client documents securely.
-                </p>
-
-              </Link>
+              </p>
 
             </div>
 
@@ -448,7 +544,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 
         <AnalyticsCard
           title="Total Clients"
@@ -458,15 +554,22 @@ export default function DashboardPage() {
         />
 
         <AnalyticsCard
-          title="Pending Reminders"
+          title="Pending"
           value={pendingReminders}
           icon={<Clock3 size={28} />}
           color="yellow"
         />
 
         <AnalyticsCard
-          title="Sent Reminders"
+          title="Sent"
           value={sentReminders}
+          icon={<Bell size={28} />}
+          color="blue"
+        />
+
+        <AnalyticsCard
+          title="Completed"
+          value={completedReminders}
           icon={<CheckCircle2 size={28} />}
           color="green"
         />
@@ -481,7 +584,7 @@ export default function DashboardPage() {
         <AnalyticsCard
           title="Due Within 7 Days"
           value={dueSoonReminders}
-          icon={<Bell size={28} />}
+          icon={<Clock3 size={28} />}
           color="orange"
         />
 
@@ -497,20 +600,15 @@ export default function DashboardPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-        {/* Pie Chart */}
         <Card className="border-0 shadow-md rounded-3xl">
 
-          <CardContent className="p-8">
+          <CardContent className="p-6 sm:p-8">
 
             <div className="mb-8">
 
               <h2 className="text-2xl font-bold">
                 Reminder Status
               </h2>
-
-              <p className="text-gray-500 mt-2">
-                Overview of reminder distribution.
-              </p>
 
             </div>
 
@@ -524,9 +622,7 @@ export default function DashboardPage() {
                     data={reminderPieData}
                     dataKey="value"
                     nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={110}
+                    outerRadius={90}
                   >
 
                     {reminderPieData.map(
@@ -557,20 +653,15 @@ export default function DashboardPage() {
 
         </Card>
 
-        {/* Bar Chart */}
         <Card className="border-0 shadow-md rounded-3xl">
 
-          <CardContent className="p-8">
+          <CardContent className="p-6 sm:p-8">
 
             <div className="mb-8">
 
               <h2 className="text-2xl font-bold">
                 Reminder Analytics
               </h2>
-
-              <p className="text-gray-500 mt-2">
-                Operational reminder metrics.
-              </p>
 
             </div>
 
@@ -606,10 +697,104 @@ export default function DashboardPage() {
 
       </div>
 
+      {/* Upcoming Deadlines */}
+      <Card className="border-0 shadow-md rounded-3xl">
+
+        <CardContent className="p-6 sm:p-8">
+
+          <div className="mb-8">
+
+            <h2 className="text-2xl font-bold">
+              Upcoming Deadlines
+            </h2>
+
+          </div>
+
+          <div className="space-y-4">
+
+            {upcomingReminders.length === 0 ? (
+
+              <div className="text-center py-12">
+
+                <p className="text-gray-500">
+                  No upcoming reminders.
+                </p>
+
+              </div>
+
+            ) : (
+
+              upcomingReminders.map(
+                (reminder) => {
+
+                  const urgency =
+                    getUrgency(
+                      reminder.due_date
+                    );
+
+                  return (
+
+                    <div
+                      key={reminder.id}
+                      className="border rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 hover:bg-gray-50 transition"
+                    >
+
+                      <div>
+
+                        <h3 className="font-semibold text-lg">
+
+                          {reminder.client_name}
+
+                        </h3>
+
+                        <p className="text-gray-500 mt-1">
+
+                          {reminder.message}
+
+                        </p>
+
+                      </div>
+
+                      <div className="flex flex-col lg:items-end gap-3">
+
+                        <span
+                          className={`px-4 py-2 rounded-full text-sm font-semibold w-fit ${urgency.color}`}
+                        >
+
+                          {urgency.label}
+
+                        </span>
+
+                        <p className="text-sm text-gray-500">
+
+                          Due:
+                          {" "}
+                          {new Date(
+                            reminder.due_date
+                          ).toLocaleDateString()}
+
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  );
+                }
+              )
+
+            )}
+
+          </div>
+
+        </CardContent>
+
+      </Card>
+
       {/* Activity Feed */}
       <Card className="border-0 shadow-md rounded-3xl">
 
-        <CardContent className="p-8">
+        <CardContent className="p-6 sm:p-8">
 
           <div className="flex items-center justify-between mb-8">
 
@@ -618,10 +803,6 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold">
                 Recent Activity
               </h2>
-
-              <p className="text-gray-500 mt-2">
-                Latest accounting workflow actions.
-              </p>
 
             </div>
 

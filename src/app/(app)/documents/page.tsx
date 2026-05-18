@@ -7,6 +7,10 @@ import {
   useState,
 } from "react";
 
+import { toast } from "sonner";
+
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+
 import { createClient } from "@/lib/client";
 
 import {
@@ -143,7 +147,7 @@ export default function DocumentsPage() {
 
     if (!selectedFile) {
 
-      alert(
+      toast.error(
         "Please select a file."
       );
 
@@ -152,7 +156,7 @@ export default function DocumentsPage() {
 
     if (!selectedClientId) {
 
-      alert(
+      toast.error(
         "Please select a client."
       );
 
@@ -176,7 +180,7 @@ export default function DocumentsPage() {
       )
     ) {
 
-      alert(
+      toast.error(
         "Invalid file type."
       );
 
@@ -188,7 +192,7 @@ export default function DocumentsPage() {
       maxSize
     ) {
 
-      alert(
+      toast.error(
         "File too large."
       );
 
@@ -222,7 +226,7 @@ export default function DocumentsPage() {
 
     if (uploadError) {
 
-      alert(
+      toast.error(
         uploadError.message
       );
 
@@ -253,14 +257,14 @@ export default function DocumentsPage() {
 
     if (dbError) {
 
-      alert(
+      toast.error(
         dbError.message
       );
 
     } else {
 
-      alert(
-        "Document uploaded!"
+      toast.success(
+        "Document uploaded successfully!"
       );
 
       setSelectedFile(
@@ -289,7 +293,7 @@ export default function DocumentsPage() {
 
     if (error) {
 
-      alert(
+      toast.error(
         error.message
       );
 
@@ -311,19 +315,16 @@ export default function DocumentsPage() {
     a.download = fileName;
 
     a.click();
+
+    toast.success(
+      "Download started."
+    );
   }
 
   async function handleDelete(
     id: number,
     filePath: string
   ) {
-
-    const confirmed =
-      confirm(
-        "Delete this document?"
-      );
-
-    if (!confirmed) return;
 
     await supabase.storage
       .from("documents")
@@ -337,6 +338,10 @@ export default function DocumentsPage() {
       .eq("id", id);
 
     fetchDocuments();
+
+    toast.success(
+      "Document deleted successfully!"
+    );
   }
 
   function getFileType(
@@ -490,7 +495,6 @@ export default function DocumentsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-          {/* Client */}
           <select
             className="border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
             value={
@@ -526,7 +530,6 @@ export default function DocumentsPage() {
 
           </select>
 
-          {/* File */}
           <input
             type="file"
             className="border border-gray-300 rounded-2xl px-4 py-3"
@@ -539,7 +542,6 @@ export default function DocumentsPage() {
             }
           />
 
-          {/* Upload */}
           <button
             onClick={
               handleUpload
@@ -573,7 +575,6 @@ export default function DocumentsPage() {
       {/* Documents */}
       <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6 sm:p-8 overflow-hidden">
 
-        {/* Top */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
 
           <div>
@@ -588,7 +589,6 @@ export default function DocumentsPage() {
 
           </div>
 
-          {/* Search */}
           <div className="relative w-full lg:w-80">
 
             <Search
@@ -611,174 +611,202 @@ export default function DocumentsPage() {
 
         </div>
 
-        {/* Responsive Table */}
-        <div className="overflow-x-auto">
+        {filteredDocuments.length === 0 ? (
 
-          <table className="w-full min-w-[1000px]">
+          <div className="text-center py-16">
 
-            <thead>
+            <FolderOpen
+              size={52}
+              className="mx-auto text-gray-300"
+            />
 
-              <tr className="border-b text-left">
+            <h3 className="mt-5 text-xl font-semibold text-slate-800">
 
-                <th className="px-4 py-4 font-semibold">
-                  Type
-                </th>
+              No documents found
 
-                <th className="px-4 py-4 font-semibold">
-                  File Name
-                </th>
+            </h3>
 
-                <th className="px-4 py-4 font-semibold">
-                  Client
-                </th>
+            <p className="text-gray-500 mt-2">
 
-                <th className="px-4 py-4 font-semibold">
-                  Size
-                </th>
+              Upload your first accounting document to begin organizing files.
 
-                <th className="px-4 py-4 font-semibold">
-                  Uploaded
-                </th>
+            </p>
 
-                <th className="px-4 py-4 font-semibold">
-                  Actions
-                </th>
+          </div>
 
-              </tr>
+        ) : (
 
-            </thead>
+          <div className="overflow-x-auto">
 
-            <tbody>
+            <table className="w-full min-w-[1000px]">
 
-              {filteredDocuments.map(
-                (doc) => {
+              <thead>
 
-                  const file =
-                    getFileType(
-                      doc.file_name
+                <tr className="border-b text-left">
+
+                  <th className="px-4 py-4 font-semibold">
+                    Type
+                  </th>
+
+                  <th className="px-4 py-4 font-semibold">
+                    File Name
+                  </th>
+
+                  <th className="px-4 py-4 font-semibold">
+                    Client
+                  </th>
+
+                  <th className="px-4 py-4 font-semibold">
+                    Size
+                  </th>
+
+                  <th className="px-4 py-4 font-semibold">
+                    Uploaded
+                  </th>
+
+                  <th className="px-4 py-4 font-semibold">
+                    Actions
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {filteredDocuments.map(
+                  (doc) => {
+
+                    const file =
+                      getFileType(
+                        doc.file_name
+                      );
+
+                    const Icon =
+                      file.icon;
+
+                    return (
+
+                      <tr
+                        key={doc.id}
+                        className="border-b hover:bg-gray-50 transition"
+                      >
+
+                        <td className="px-4 py-5">
+
+                          <div
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold ${file.color}`}
+                          >
+
+                            <Icon size={16} />
+
+                            {file.label}
+
+                          </div>
+
+                        </td>
+
+                        <td className="px-4 py-5 font-medium">
+
+                          {doc.file_name}
+
+                        </td>
+
+                        <td className="px-4 py-5">
+
+                          <Link
+                            href={`/clients/${doc.clients?.id}`}
+                            className="text-blue-600 font-semibold hover:underline"
+                          >
+
+                            {
+                              doc.clients
+                                ?.name
+                            }
+
+                          </Link>
+
+                        </td>
+
+                        <td className="px-4 py-5">
+
+                          {(
+                            doc.file_size /
+                            1024
+                          ).toFixed(2)}{" "}
+                          KB
+
+                        </td>
+
+                        <td className="px-4 py-5">
+
+                          {new Date(
+                            doc.created_at
+                          ).toLocaleDateString()}
+
+                        </td>
+
+                        <td className="px-4 py-5">
+
+                          <div className="flex flex-wrap gap-2">
+
+                            <button
+                              onClick={() =>
+                                handleDownload(
+                                  doc.file_path,
+                                  doc.file_name
+                                )
+                              }
+                              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                            >
+
+                              <Download size={16} />
+
+                              Download
+
+                            </button>
+
+                            <ConfirmDialog
+                                title="Delete Document"
+                                description="This document will be permanently deleted from storage. This action cannot be undone."
+                                confirmText="Delete"
+                                onConfirm={() =>
+                                  handleDelete(
+                                    doc.id,
+                                    doc.file_path
+                                  )
+                                }
+                              >
+
+                                <button
+                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                                >
+
+                                  <Trash2 size={16} />
+
+                                  Delete
+
+                                </button>
+
+                              </ConfirmDialog>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
                     );
+                  }
+                )}
 
-                  const Icon =
-                    file.icon;
+              </tbody>
 
-                  return (
+            </table>
 
-                    <tr
-                      key={doc.id}
-                      className="border-b hover:bg-gray-50 transition"
-                    >
+          </div>
 
-                      {/* Type */}
-                      <td className="px-4 py-5">
-
-                        <div
-                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold ${file.color}`}
-                        >
-
-                          <Icon size={16} />
-
-                          {file.label}
-
-                        </div>
-
-                      </td>
-
-                      {/* File */}
-                      <td className="px-4 py-5 font-medium">
-
-                        {doc.file_name}
-
-                      </td>
-
-                      {/* Client */}
-                      <td className="px-4 py-5">
-
-                        <Link
-                          href={`/clients/${doc.clients?.id}`}
-                          className="text-blue-600 font-semibold hover:underline"
-                        >
-
-                          {
-                            doc.clients
-                              ?.name
-                          }
-
-                        </Link>
-
-                      </td>
-
-                      {/* Size */}
-                      <td className="px-4 py-5">
-
-                        {(
-                          doc.file_size /
-                          1024
-                        ).toFixed(2)}{" "}
-                        KB
-
-                      </td>
-
-                      {/* Date */}
-                      <td className="px-4 py-5">
-
-                        {new Date(
-                          doc.created_at
-                        ).toLocaleDateString()}
-
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-5">
-
-                        <div className="flex flex-wrap gap-2">
-
-                          <button
-                            onClick={() =>
-                              handleDownload(
-                                doc.file_path,
-                                doc.file_name
-                              )
-                            }
-                            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
-                          >
-
-                            <Download size={16} />
-
-                            Download
-
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              handleDelete(
-                                doc.id,
-                                doc.file_path
-                              )
-                            }
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
-                          >
-
-                            <Trash2 size={16} />
-
-                            Delete
-
-                          </button>
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  );
-                }
-              )}
-
-            </tbody>
-
-          </table>
-
-        </div>
+        )}
 
       </div>
 

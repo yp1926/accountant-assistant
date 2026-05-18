@@ -7,6 +7,10 @@ import {
   useState,
 } from "react";
 
+import { toast } from "sonner";
+
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+
 import { createClient } from "@/lib/client";
 
 import {
@@ -16,6 +20,7 @@ import {
   Mail,
   Pencil,
   Trash2,
+  CheckCircle2,
 } from "lucide-react";
 
 type Reminder = {
@@ -26,6 +31,7 @@ type Reminder = {
   message: string;
   due_date: string;
   status: string;
+  frequency: string;
 };
 
 type Client = {
@@ -75,6 +81,15 @@ export default function RemindersPage() {
 
   const [dueDate, setDueDate] =
     useState("");
+
+  const [frequency, setFrequency] =
+    useState("once");
+
+  const [addingReminder, setAddingReminder] =
+    useState(false);
+
+  const [sendingReminderId, setSendingReminderId] =
+    useState<number | null>(null);
 
   const todayDate =
     new Date().toISOString().split("T")[0];
@@ -248,12 +263,14 @@ export default function RemindersPage() {
       !dueDate
     ) {
 
-      alert(
+      toast.error(
         "Please fill all fields."
       );
 
       return;
     }
+
+    setAddingReminder(true);
 
     const {
       data: { user },
@@ -274,6 +291,7 @@ export default function RemindersPage() {
             due_date:
               dueDate,
             status: "pending",
+            frequency,
             user_id:
               user?.id,
           },
@@ -281,38 +299,224 @@ export default function RemindersPage() {
 
     if (error) {
 
-      alert(error.message);
+      setAddingReminder(false);
 
-    } else {
+      toast.error(
+        error.message
+      );
 
-      setSelectedClientId(null);
-
-      setClientName("");
-
-      setClientEmail("");
-
-      setMessage("");
-
-      setDueDate("");
-
-      fetchReminders();
+      return;
     }
+
+    setSelectedClientId(null);
+
+    setClientName("");
+
+    setClientEmail("");
+
+    setMessage("");
+
+    setDueDate("");
+
+    setFrequency("once");
+
+    fetchReminders();
+
+    setAddingReminder(false);
+
+    toast.success(
+      "Reminder added successfully!"
+    );
+  }
+
+  async function handleUpdateReminder(
+    reminder: Reminder
+  ) {
+
+    const { error } =
+      await supabase
+        .from("reminders")
+        .update({
+          client_name:
+            reminder.client_name,
+
+          client_email:
+            reminder.client_email,
+
+          message:
+            reminder.message,
+
+          due_date:
+            reminder.due_date,
+
+          frequency:
+            reminder.frequency,
+        })
+        .eq(
+          "id",
+          reminder.id
+        );
+
+    if (error) {
+
+      toast.error(
+        error.message
+      );
+
+      return;
+    }
+
+    setEditingReminderId(null);
+
+    fetchReminders();
+
+    toast.success(
+      "Reminder updated successfully!"
+    );
+  }
+
+  function handleReminderChange(
+    id: number,
+    field: keyof Reminder,
+    value: string
+  ) {
+
+    setReminders(
+      (prevReminders) =>
+        prevReminders.map(
+          (reminder) =>
+            reminder.id === id
+              ? {
+                  ...reminder,
+                  [field]:
+                    value,
+                }
+              : reminder
+        )
+    );
   }
 
   async function handleDeleteReminder(
     id: number
   ) {
 
-    const confirmed = confirm(
-      "Delete reminder?"
-    );
-
-    if (!confirmed) return;
-
     await supabase
       .from("reminders")
       .delete()
       .eq("id", id);
+
+    fetchReminders();
+
+    toast.success(
+      "Reminder deleted successfully!"
+    );
+  }
+
+  async function handleCompleteReminder(
+    reminder: Reminder
+  ) {
+
+    if (
+      reminder.frequency &&
+      reminder.frequency !== "once"
+    ) {
+
+      const nextDate =
+        new Date(
+          reminder.due_date
+        );
+
+      switch (
+        reminder.frequency
+      ) {
+
+        case "weekly":
+
+          nextDate.setDate(
+            nextDate.getDate() + 7
+          );
+
+          break;
+
+        case "monthly":
+
+          nextDate.setMonth(
+            nextDate.getMonth() + 1
+          );
+
+          break;
+
+        case "quarterly":
+
+          nextDate.setMonth(
+            nextDate.getMonth() + 3
+          );
+
+          break;
+
+        case "yearly":
+
+          nextDate.setFullYear(
+            nextDate.getFullYear() + 1
+          );
+
+          break;
+      }
+
+      await supabase
+        .from("reminders")
+        .update({
+          due_date:
+            nextDate
+              .toISOString()
+              .split("T")[0],
+
+          status:
+            "pending",
+
+          completed_at:
+            new Date()
+              .toISOString(),
+
+          reminder_7_sent:
+            false,
+
+          reminder_1_sent:
+            false,
+
+          due_reminder_sent:
+            false,
+        })
+        .eq(
+          "id",
+          reminder.id
+        );
+
+      toast.success(
+        "Recurring reminder completed and regenerated!"
+      );
+
+    } else {
+
+      await supabase
+        .from("reminders")
+        .update({
+          status:
+            "completed",
+
+          completed_at:
+            new Date()
+              .toISOString(),
+        })
+        .eq(
+          "id",
+          reminder.id
+        );
+
+      toast.success(
+        "Reminder completed successfully!"
+      );
+    }
 
     fetchReminders();
   }
@@ -323,6 +527,8 @@ export default function RemindersPage() {
     clientEmail: string,
     message: string
   ) {
+
+    setSendingReminderId(id);
 
     const response =
       await fetch(
@@ -351,17 +557,27 @@ export default function RemindersPage() {
         .from("reminders")
         .update({
           status: "sent",
+
+          last_sent_at:
+            new Date()
+              .toISOString(),
         })
         .eq("id", id);
 
       fetchReminders();
 
-      alert("Email sent!");
+      setSendingReminderId(null);
+
+      toast.success(
+        "Reminder email sent successfully!"
+      );
 
     } else {
 
-      alert(
-        "Failed to send email"
+      setSendingReminderId(null);
+
+      toast.error(
+        "Failed to send reminder email."
       );
     }
   }
@@ -371,9 +587,18 @@ export default function RemindersPage() {
     status: string
   ) {
 
-    if (status === "sent") {
+    if (
+      status === "completed"
+    ) {
 
-      return "bg-green-600";
+      return "bg-emerald-600";
+    }
+
+    if (
+      status === "sent"
+    ) {
+
+      return "bg-blue-600";
     }
 
     const today =
@@ -415,7 +640,16 @@ export default function RemindersPage() {
     status: string
   ) {
 
-    if (status === "sent") {
+    if (
+      status === "completed"
+    ) {
+
+      return "Completed";
+    }
+
+    if (
+      status === "sent"
+    ) {
 
       return "Sent";
     }
@@ -457,7 +691,6 @@ export default function RemindersPage() {
   return (
     <main className="space-y-8">
 
-      {/* Hero */}
       <div className="bg-gradient-to-br from-slate-900 to-blue-900 rounded-3xl p-6 sm:p-8 lg:p-10 text-white relative overflow-hidden">
 
         <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500 rounded-full blur-3xl opacity-20" />
@@ -482,7 +715,7 @@ export default function RemindersPage() {
 
               <p className="text-blue-100 mt-4 text-lg max-w-2xl leading-relaxed">
 
-                Manage deadlines, client reminders and automated accounting notifications.
+                Manage accounting workflows, recurring deadlines and operational reminder automation.
 
               </p>
 
@@ -522,7 +755,6 @@ export default function RemindersPage() {
 
       </div>
 
-      {/* Add Reminder */}
       <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6 sm:p-8">
 
         <div className="flex items-center gap-3 mb-8">
@@ -538,10 +770,6 @@ export default function RemindersPage() {
             <h2 className="text-2xl font-bold">
               Add Reminder
             </h2>
-
-            <p className="text-gray-500 mt-1">
-              Create client reminder workflows.
-            </p>
 
           </div>
 
@@ -624,20 +852,54 @@ export default function RemindersPage() {
             }
           />
 
+          <select
+            className="border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+            value={frequency}
+            onChange={(e) =>
+              setFrequency(
+                e.target.value
+              )
+            }
+          >
+
+            <option value="once">
+              Once
+            </option>
+
+            <option value="weekly">
+              Weekly
+            </option>
+
+            <option value="monthly">
+              Monthly
+            </option>
+
+            <option value="quarterly">
+              Quarterly
+            </option>
+
+            <option value="yearly">
+              Yearly
+            </option>
+
+          </select>
+
         </div>
 
         <button
           onClick={handleAddReminder}
-          className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-semibold transition"
+          disabled={addingReminder}
+          className="mt-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl transition"
         >
 
-          Add Reminder
+          {addingReminder
+            ? "Adding Reminder..."
+            : "Add Reminder"}
 
         </button>
 
       </div>
 
-      {/* Reminder Table */}
       <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6 sm:p-8 overflow-hidden">
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
@@ -645,12 +907,8 @@ export default function RemindersPage() {
           <div>
 
             <h2 className="text-2xl font-bold">
-              Reminder List
+              Reminder Workflows
             </h2>
-
-            <p className="text-gray-500 mt-2">
-              Monitor and manage client reminder workflows.
-            </p>
 
           </div>
 
@@ -698,183 +956,383 @@ export default function RemindersPage() {
                 Sent
               </option>
 
+              <option value="completed">
+                Completed
+              </option>
+
             </select>
 
           </div>
 
         </div>
 
-        <div className="overflow-x-auto">
+        {filteredReminders.length === 0 ? (
 
-          <table className="w-full min-w-[1100px]">
+          <div className="text-center py-16">
 
-            <thead>
+            <Bell
+              size={52}
+              className="mx-auto text-gray-300"
+            />
 
-              <tr className="border-b text-left">
+            <h3 className="mt-5 text-xl font-semibold text-slate-800">
 
-                <th className="px-4 py-4 font-semibold">
-                  Client
-                </th>
+              No reminders found
 
-                <th className="px-4 py-4 font-semibold">
-                  Email
-                </th>
+            </h3>
 
-                <th className="px-4 py-4 font-semibold">
-                  Message
-                </th>
+            <p className="text-gray-500 mt-2">
 
-                <th className="px-4 py-4 font-semibold">
-                  Due Date
-                </th>
+              Create reminder workflows to automate accounting operations.
 
-                <th className="px-4 py-4 font-semibold">
-                  Priority
-                </th>
+            </p>
 
-                <th className="px-4 py-4 font-semibold">
-                  Status
-                </th>
+          </div>
 
-                <th className="px-4 py-4 font-semibold">
-                  Actions
-                </th>
+        ) : (
 
-              </tr>
+          <div className="overflow-x-auto">
 
-            </thead>
+            <table className="w-full min-w-[1300px]">
 
-            <tbody>
+              <thead>
 
-              {filteredReminders.map(
-                (reminder) => (
+                <tr className="border-b text-left">
 
-                  <tr
-                    key={reminder.id}
-                    className="border-b hover:bg-gray-50 transition"
-                  >
+                  <th className="px-4 py-4 font-semibold">
+                    Client
+                  </th>
 
-                    <td className="px-4 py-5 font-semibold">
+                  <th className="px-4 py-4 font-semibold">
+                    Email
+                  </th>
 
-                      <Link
-                        href={`/clients/${reminder.client_id}`}
-                        className="text-blue-600 hover:underline"
-                      >
+                  <th className="px-4 py-4 font-semibold">
+                    Message
+                  </th>
 
-                        {reminder.client_name}
+                  <th className="px-4 py-4 font-semibold">
+                    Due Date
+                  </th>
 
-                      </Link>
+                  <th className="px-4 py-4 font-semibold">
+                    Frequency
+                  </th>
 
-                    </td>
+                  <th className="px-4 py-4 font-semibold">
+                    Priority
+                  </th>
 
-                    <td className="px-4 py-5">
+                  <th className="px-4 py-4 font-semibold">
+                    Status
+                  </th>
 
-                      {reminder.client_email}
+                  <th className="px-4 py-4 font-semibold">
+                    Actions
+                  </th>
 
-                    </td>
+                </tr>
 
-                    <td className="px-4 py-5">
+              </thead>
 
-                      {reminder.message}
+              <tbody>
 
-                    </td>
+                {filteredReminders.map(
+                  (reminder) => (
 
-                    <td className="px-4 py-5">
+                    <tr
+                      key={reminder.id}
+                      className="border-b hover:bg-gray-50 transition"
+                    >
 
-                      {reminder.due_date}
+                      <td className="px-4 py-5 font-semibold">
 
-                    </td>
+                        {editingReminderId === reminder.id ? (
 
-                    <td className="px-4 py-5">
+                          <input
+                            className="border border-gray-300 rounded-xl px-3 py-2 w-full"
+                            value={reminder.client_name}
+                            onChange={(e) =>
+                              handleReminderChange(
+                                reminder.id,
+                                "client_name",
+                                e.target.value
+                              )
+                            }
+                          />
 
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm text-white ${getPriorityColor(
-                          reminder.due_date,
-                          reminder.status
-                        )}`}
-                      >
+                        ) : (
 
-                        {getPriorityLabel(
-                          reminder.due_date,
-                          reminder.status
+                          <Link
+                            href={`/clients/${reminder.client_id}`}
+                            className="text-blue-600 hover:underline"
+                          >
+
+                            {reminder.client_name}
+
+                          </Link>
+
                         )}
 
-                      </span>
+                      </td>
 
-                    </td>
+                      <td className="px-4 py-5">
 
-                    <td className="px-4 py-5 capitalize">
+                        {reminder.client_email}
 
-                      {reminder.status}
+                      </td>
 
-                    </td>
+                      <td className="px-4 py-5">
 
-                    <td className="px-4 py-5">
+                        {editingReminderId === reminder.id ? (
 
-                      <div className="flex flex-wrap gap-2">
+                          <input
+                            className="border border-gray-300 rounded-xl px-3 py-2 w-full"
+                            value={reminder.message}
+                            onChange={(e) =>
+                              handleReminderChange(
+                                reminder.id,
+                                "message",
+                                e.target.value
+                              )
+                            }
+                          />
 
-                        <button
-                          onClick={() =>
-                            setEditingReminderId(
-                              reminder.id
-                            )
-                          }
-                          className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                        ) : (
+
+                          reminder.message
+
+                        )}
+
+                      </td>
+
+                      <td className="px-4 py-5">
+
+                        {editingReminderId === reminder.id ? (
+
+                          <input
+                            type="date"
+                            className="border border-gray-300 rounded-xl px-3 py-2"
+                            value={reminder.due_date}
+                            onChange={(e) =>
+                              handleReminderChange(
+                                reminder.id,
+                                "due_date",
+                                e.target.value
+                              )
+                            }
+                          />
+
+                        ) : (
+
+                          reminder.due_date
+
+                        )}
+
+                      </td>
+
+                      <td className="px-4 py-5 capitalize">
+
+                        {editingReminderId === reminder.id ? (
+
+                          <select
+                            className="border border-gray-300 rounded-xl px-3 py-2"
+                            value={reminder.frequency}
+                            onChange={(e) =>
+                              handleReminderChange(
+                                reminder.id,
+                                "frequency",
+                                e.target.value
+                              )
+                            }
+                          >
+
+                            <option value="once">
+                              Once
+                            </option>
+
+                            <option value="weekly">
+                              Weekly
+                            </option>
+
+                            <option value="monthly">
+                              Monthly
+                            </option>
+
+                            <option value="quarterly">
+                              Quarterly
+                            </option>
+
+                            <option value="yearly">
+                              Yearly
+                            </option>
+
+                          </select>
+
+                        ) : (
+
+                          reminder.frequency || "once"
+
+                        )}
+
+                      </td>
+
+                      <td className="px-4 py-5">
+
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm text-white ${getPriorityColor(
+                            reminder.due_date,
+                            reminder.status
+                          )}`}
                         >
 
-                          <Pencil size={16} />
+                          {getPriorityLabel(
+                            reminder.due_date,
+                            reminder.status
+                          )}
 
-                          Edit
+                        </span>
 
-                        </button>
+                      </td>
 
-                        <button
-                          onClick={() =>
-                            handleSendEmail(
-                              reminder.id,
-                              reminder.client_name,
-                              reminder.client_email,
-                              reminder.message
-                            )
-                          }
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
-                        >
+                      <td className="px-4 py-5 capitalize font-medium">
 
-                          <Mail size={16} />
+                        {reminder.status}
 
-                          Send
+                      </td>
 
-                        </button>
+                      <td className="px-4 py-5">
 
-                        <button
-                          onClick={() =>
-                            handleDeleteReminder(
-                              reminder.id
-                            )
-                          }
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
-                        >
+                        <div className="flex flex-wrap gap-2">
 
-                          <Trash2 size={16} />
+                          {reminder.status !== "completed" && (
 
-                          Delete
+                            <ConfirmDialog
+                              title="Complete Reminder"
+                              description="Mark this reminder as completed?"
+                              confirmText="Complete"
+                              onConfirm={() =>
+                                handleCompleteReminder(
+                                  reminder
+                                )
+                              }
+                            >
 
-                        </button>
+                              <button
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                              >
 
-                      </div>
+                                <CheckCircle2 size={16} />
 
-                    </td>
+                                Complete
 
-                  </tr>
+                              </button>
 
-                )
-              )}
+                            </ConfirmDialog>
 
-            </tbody>
+                          )}
 
-          </table>
+                          {reminder.status === "pending" && (
 
-        </div>
+                            <button
+                              onClick={() =>
+                                handleSendEmail(
+                                  reminder.id,
+                                  reminder.client_name,
+                                  reminder.client_email,
+                                  reminder.message
+                                )
+                              }
+                              disabled={
+                                sendingReminderId ===
+                                reminder.id
+                              }
+                              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                            >
+
+                              <Mail size={16} />
+
+                              {sendingReminderId === reminder.id
+                                ? "Sending..."
+                                : "Send"}
+
+                            </button>
+
+                          )}
+
+                          {editingReminderId === reminder.id ? (
+
+                            <button
+                              onClick={() =>
+                                handleUpdateReminder(
+                                  reminder
+                                )
+                              }
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition"
+                            >
+
+                              Save
+
+                            </button>
+
+                          ) : (
+
+                            <button
+                              onClick={() =>
+                                setEditingReminderId(
+                                  reminder.id
+                                )
+                              }
+                              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                            >
+
+                              <Pencil size={16} />
+
+                              Edit
+
+                            </button>
+
+                          )}
+
+                          <ConfirmDialog
+                            title="Delete Reminder"
+                            description="This reminder will be permanently deleted."
+                            confirmText="Delete"
+                            onConfirm={() =>
+                              handleDeleteReminder(
+                                reminder.id
+                              )
+                            }
+                          >
+
+                            <button
+                              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
+                            >
+
+                              <Trash2 size={16} />
+
+                              Delete
+
+                            </button>
+
+                          </ConfirmDialog>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  )
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )}
 
       </div>
 

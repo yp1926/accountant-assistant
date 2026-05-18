@@ -10,6 +10,8 @@ import {
   useRouter,
 } from "next/navigation";
 
+import { toast } from "sonner";
+
 import { createClient } from "@/lib/client";
 
 import {
@@ -32,9 +34,6 @@ export default function LoginPage() {
   const [loading, setLoading] =
     useState(false);
 
-  const [error, setError] =
-    useState("");
-
   async function handleLogin(
     e: React.FormEvent
   ) {
@@ -42,8 +41,6 @@ export default function LoginPage() {
     e.preventDefault();
 
     setLoading(true);
-
-    setError("");
 
     const { error } =
       await supabase.auth.signInWithPassword({
@@ -53,12 +50,18 @@ export default function LoginPage() {
 
     if (error) {
 
-      setError(error.message);
+      toast.error(
+        error.message
+      );
 
       setLoading(false);
 
       return;
     }
+
+    toast.success(
+      "Login successful!"
+    );
 
     router.push("/dashboard");
   }
@@ -245,17 +248,6 @@ export default function LoginPage() {
                 />
 
               </div>
-
-              {/* Error */}
-              {error && (
-
-                <div className="bg-red-100 text-red-700 px-4 py-3 rounded-2xl text-sm">
-
-                  {error}
-
-                </div>
-
-              )}
 
               {/* Login Button */}
               <button
