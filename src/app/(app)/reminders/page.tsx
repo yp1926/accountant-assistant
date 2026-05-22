@@ -743,6 +743,48 @@ export default function RemindersPage() {
     return "Upcoming";
   }
 
+  function getPriorityRank(
+    dueDate: string,
+    status: string
+  ) {
+  
+    const today =
+      new Date();
+  
+    const due =
+      new Date(dueDate);
+  
+    const diff =
+      due.getTime() -
+      today.getTime();
+  
+    const daysLeft =
+      Math.ceil(
+        diff /
+          (1000 * 60 * 60 * 24)
+      );
+  
+    if (
+      status ===
+      "completed"
+    ) {
+  
+      return 4;
+    }
+  
+    if (daysLeft < 0) {
+  
+      return 1;
+    }
+  
+    if (daysLeft <= 7) {
+  
+      return 2;
+    }
+  
+    return 3;
+  }
+
   function handleSort(
     field:
       | "client"
@@ -769,73 +811,117 @@ export default function RemindersPage() {
       direction
     );
   
-    const sorted = [
-      ...filteredReminders,
-    ].sort((a, b) => {
+    const filtered =
+      reminders.filter(
+        (reminder) => {
   
-      let valueA = "";
-      let valueB = "";
+          const matchesSearch =
   
-      switch (field) {
+            reminder.client_name
+              .toLowerCase()
+              .includes(
+                searchTerm.toLowerCase()
+              ) ||
   
-        case "client":
+            reminder.client_email
+              .toLowerCase()
+              .includes(
+                searchTerm.toLowerCase()
+              ) ||
   
-          valueA =
-            a.client_name.toLowerCase();
+            reminder.message
+              .toLowerCase()
+              .includes(
+                searchTerm.toLowerCase()
+              );
   
-          valueB =
-            b.client_name.toLowerCase();
+          const matchesStatus =
   
-          break;
+            statusFilter ===
+              "all" ||
   
-        case "status":
+            reminder.status ===
+              statusFilter;
   
-          valueA =
-            a.status.toLowerCase();
-  
-          valueB =
-            b.status.toLowerCase();
-  
-          break;
-  
-        case "priority":
-  
-          valueA =
-            getPriorityLabel(
-              a.due_date,
-              a.status
-            );
-  
-          valueB =
-            getPriorityLabel(
-              b.due_date,
-              b.status
-            );
-  
-          break;
-  
-        case "due_date":
-  
-          valueA =
-            a.due_date;
-  
-          valueB =
-            b.due_date;
-  
-          break;
-      }
-  
-      if (direction === "asc") {
-  
-        return valueA.localeCompare(
-          valueB
-        );
-      }
-  
-      return valueB.localeCompare(
-        valueA
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        }
       );
-    });
+  
+    const sorted =
+      [...filtered].sort(
+        (a, b) => {
+  
+          switch (field) {
+  
+            case "client": {
+  
+              const result =
+                a.client_name.localeCompare(
+                  b.client_name
+                );
+  
+              return direction ===
+                "asc"
+                ? result
+                : -result;
+            }
+  
+            case "status": {
+  
+              const result =
+                a.status.localeCompare(
+                  b.status
+                );
+  
+              return direction ===
+                "asc"
+                ? result
+                : -result;
+            }
+  
+            case "due_date": {
+  
+              const result =
+                new Date(
+                  a.due_date
+                ).getTime() -
+                new Date(
+                  b.due_date
+                ).getTime();
+  
+              return direction ===
+                "asc"
+                ? result
+                : -result;
+            }
+  
+            case "priority": {
+  
+              const result =
+                getPriorityRank(
+                  a.due_date,
+                  a.status
+                ) -
+                getPriorityRank(
+                  b.due_date,
+                  b.status
+                );
+  
+              return direction ===
+                "asc"
+                ? result
+                : -result;
+            }
+  
+            default:
+  
+              return 0;
+          }
+        }
+      );
   
     setFilteredReminders(
       sorted
