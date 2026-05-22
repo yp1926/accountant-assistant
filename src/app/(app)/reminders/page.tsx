@@ -28,6 +28,7 @@ type Reminder = {
   client_id: number;
   client_name: string;
   client_email: string;
+  client_company: string;
   message: string;
   due_date: string;
   status: string;
@@ -91,8 +92,57 @@ export default function RemindersPage() {
   const [sendingReminderId, setSendingReminderId] =
     useState<number | null>(null);
 
+  const [sortField, setSortField] =
+    useState<
+      | "client"
+      | "due_date"
+      | "priority"
+      | "status"
+    >("due_date");
+
+  const [sortDirection, setSortDirection] =
+    useState<
+      "asc" | "desc"
+    >("asc");
+
+    const [showMessageModal, setShowMessageModal] =
+    useState(false);
+
+
   const todayDate =
     new Date().toISOString().split("T")[0];
+
+    const reminderTemplates = [
+      {
+        label: "VAT Reminder",
+        message:
+          "Hello, this is a reminder that your VAT filing deadline is approaching. Please ensure all required documents are submitted on time.",
+      },
+    
+      {
+        label: "Tax Filing",
+        message:
+          "Hello, this is a reminder regarding your upcoming tax filing deadline. Please review and prepare all necessary financial information.",
+      },
+    
+      {
+        label: "Invoice Payment",
+        message:
+          "Hello, this is a reminder about your pending invoice payment. Please process the payment at your earliest convenience.",
+      },
+    
+      {
+        label: "Missing Documents",
+        message:
+          "Hello, please send the missing accounting documents required to complete your file processing.",
+      },
+    
+      {
+        label: "Payroll Deadline",
+        message:
+          "Hello, this is a reminder regarding the upcoming payroll processing deadline.",
+      },
+    ];
 
   async function fetchClients() {
 
@@ -126,7 +176,8 @@ export default function RemindersPage() {
           clients (
             id,
             name,
-            email
+            email,
+            company
           )
         `)
         .eq("user_id", user?.id)
@@ -147,6 +198,10 @@ export default function RemindersPage() {
             client_email:
               reminder.clients?.email ||
               reminder.client_email,
+
+            client_company:
+              reminder.clients?.company ||
+              "",
           })
         );
 
@@ -688,6 +743,105 @@ export default function RemindersPage() {
     return "Upcoming";
   }
 
+  function handleSort(
+    field:
+      | "client"
+      | "due_date"
+      | "priority"
+      | "status"
+  ) {
+  
+    let direction:
+      | "asc"
+      | "desc" = "asc";
+  
+    if (
+      sortField === field &&
+      sortDirection === "asc"
+    ) {
+  
+      direction = "desc";
+    }
+  
+    setSortField(field);
+  
+    setSortDirection(
+      direction
+    );
+  
+    const sorted = [
+      ...filteredReminders,
+    ].sort((a, b) => {
+  
+      let valueA = "";
+      let valueB = "";
+  
+      switch (field) {
+  
+        case "client":
+  
+          valueA =
+            a.client_name.toLowerCase();
+  
+          valueB =
+            b.client_name.toLowerCase();
+  
+          break;
+  
+        case "status":
+  
+          valueA =
+            a.status.toLowerCase();
+  
+          valueB =
+            b.status.toLowerCase();
+  
+          break;
+  
+        case "priority":
+  
+          valueA =
+            getPriorityLabel(
+              a.due_date,
+              a.status
+            );
+  
+          valueB =
+            getPriorityLabel(
+              b.due_date,
+              b.status
+            );
+  
+          break;
+  
+        case "due_date":
+  
+          valueA =
+            a.due_date;
+  
+          valueB =
+            b.due_date;
+  
+          break;
+      }
+  
+      if (direction === "asc") {
+  
+        return valueA.localeCompare(
+          valueB
+        );
+      }
+  
+      return valueB.localeCompare(
+        valueA
+      );
+    });
+  
+    setFilteredReminders(
+      sorted
+    );
+  }
+
   return (
     <main className="space-y-8">
 
@@ -829,16 +983,17 @@ export default function RemindersPage() {
             }
           />
 
-          <input
-            className="border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Reminder Message"
-            value={message}
-            onChange={(e) =>
-              setMessage(
-                e.target.value
-              )
-            }
-          />
+            <button
+              type="button"
+              onClick={() =>
+                setShowMessageModal(true)
+              }
+              className="border border-gray-300 rounded-2xl px-4 py-3 text-left hover:border-blue-500 transition"
+            >
+
+              {message || "Reminder Message"}
+
+            </button>
 
           <input
             type="date"
@@ -999,9 +1154,20 @@ export default function RemindersPage() {
 
                 <tr className="border-b text-left">
 
-                  <th className="px-4 py-4 font-semibold">
-                    Client
-                  </th>
+                <th className="px-4 py-4 font-semibold">
+
+                    <button
+                      onClick={() =>
+                        handleSort("client")
+                      }
+                      className="hover:text-blue-600 transition"
+                    >
+
+                      Client
+
+                    </button>
+
+                    </th>
 
                   <th className="px-4 py-4 font-semibold">
                     Email
@@ -1012,20 +1178,59 @@ export default function RemindersPage() {
                   </th>
 
                   <th className="px-4 py-4 font-semibold">
-                    Due Date
-                  </th>
+
+                      <button
+                        onClick={() =>
+                          handleSort(
+                            "due_date"
+                          )
+                        }
+                        className="hover:text-blue-600 transition"
+                      >
+
+                        Due Date
+
+                      </button>
+
+                    </th>
 
                   <th className="px-4 py-4 font-semibold">
                     Frequency
                   </th>
 
                   <th className="px-4 py-4 font-semibold">
-                    Priority
-                  </th>
 
-                  <th className="px-4 py-4 font-semibold">
-                    Status
-                  </th>
+                      <button
+                        onClick={() =>
+                          handleSort(
+                            "priority"
+                          )
+                        }
+                        className="hover:text-blue-600 transition"
+                      >
+
+                        Priority
+
+                      </button>
+
+                    </th>
+
+                    <th className="px-4 py-4 font-semibold">
+
+                        <button
+                          onClick={() =>
+                            handleSort(
+                              "status"
+                            )
+                          }
+                          className="hover:text-blue-600 transition"
+                        >
+
+                          Status
+
+                        </button>
+
+                        </th>
 
                   <th className="px-4 py-4 font-semibold">
                     Actions
@@ -1063,14 +1268,27 @@ export default function RemindersPage() {
 
                         ) : (
 
-                          <Link
-                            href={`/clients/${reminder.client_id}`}
-                            className="text-blue-600 hover:underline"
-                          >
+                          <div>
 
-                            {reminder.client_name}
+                            <Link
+                              href={`/clients/${reminder.client_id}`}
+                              className="text-blue-600 hover:underline font-semibold"
+                            >
 
-                          </Link>
+                              {reminder.client_name}
+
+                            </Link>
+
+                            <p className="text-sm text-gray-500 mt-1">
+
+                              {reminder.client_company ===
+                              "Individual"
+                                ? "Individual Client"
+                                : reminder.client_company}
+
+                            </p>
+
+                          </div>
 
                         )}
 
@@ -1335,6 +1553,128 @@ export default function RemindersPage() {
         )}
 
       </div>
+
+      {showMessageModal && (
+
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+
+  <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-6 space-y-6">
+
+    <div className="flex items-center justify-between">
+
+      <h2 className="text-2xl font-bold">
+
+        Reminder Message
+
+      </h2>
+
+      <button
+        onClick={() =>
+          setShowMessageModal(false)
+        }
+        className="text-gray-500 hover:text-black"
+      >
+
+        ✕
+
+      </button>
+
+    </div>
+
+    <div className="space-y-3">
+
+      <p className="text-sm font-medium text-gray-600">
+
+        Quick Templates
+
+      </p>
+
+      <div className="flex flex-wrap gap-3">
+
+        {reminderTemplates.map(
+          (template) => (
+
+            <button
+              key={template.label}
+              type="button"
+              onClick={() =>
+                setMessage(
+                  template.message
+                )
+              }
+              className="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-sm font-medium"
+            >
+
+              {template.label}
+
+            </button>
+
+          )
+        )}
+
+      </div>
+
+    </div>
+
+    <textarea
+      value={message}
+      onChange={(e) =>
+        setMessage(
+          e.target.value
+        )
+      }
+      rows={8}
+      className="w-full border border-gray-300 rounded-2xl px-4 py-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+      placeholder="Write reminder message..."
+    />
+
+      <div className="flex justify-between items-center gap-3">
+
+      <button
+        type="button"
+        onClick={() =>
+          setMessage("")
+        }
+        className="px-5 py-3 rounded-2xl bg-red-100 hover:bg-red-200 text-red-700 transition"
+      >
+
+        Clear Message
+
+      </button>
+
+      <div className="flex gap-3">
+
+        <button
+          onClick={() =>
+            setShowMessageModal(false)
+          }
+          className="px-5 py-3 rounded-2xl bg-gray-200 hover:bg-gray-300 transition"
+        >
+
+          Cancel
+
+        </button>
+
+        <button
+          onClick={() =>
+            setShowMessageModal(false)
+          }
+          className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white transition"
+        >
+
+          Save Message
+
+        </button>
+
+      </div>
+
+      </div>
+
+  </div>
+
+</div>
+
+)}
 
     </main>
   );

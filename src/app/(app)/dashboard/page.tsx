@@ -543,340 +543,416 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-        <AnalyticsCard
-          title="Total Clients"
-          value={totalClients}
-          icon={<Users size={28} />}
-          color="blue"
-        />
-
-        <AnalyticsCard
-          title="Pending"
-          value={pendingReminders}
-          icon={<Clock3 size={28} />}
-          color="yellow"
-        />
-
-        <AnalyticsCard
-          title="Sent"
-          value={sentReminders}
-          icon={<Bell size={28} />}
-          color="blue"
-        />
-
-        <AnalyticsCard
-          title="Completed"
-          value={completedReminders}
-          icon={<CheckCircle2 size={28} />}
-          color="green"
-        />
-
-        <AnalyticsCard
-          title="Overdue"
-          value={overdueReminders}
-          icon={<AlertTriangle size={28} />}
-          color="red"
-        />
-
-        <AnalyticsCard
-          title="Due Within 7 Days"
-          value={dueSoonReminders}
-          icon={<Clock3 size={28} />}
-          color="orange"
-        />
-
-        <AnalyticsCard
-          title="Documents"
-          value={totalDocuments}
-          icon={<FileText size={28} />}
-          color="blue"
-        />
-
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {totalClients === 0 ? (
 
         <Card className="border-0 shadow-md rounded-3xl">
 
-          <CardContent className="p-6 sm:p-8">
+          <CardContent className="p-16 text-center">
 
-            <div className="mb-8">
+            <div className="w-20 h-20 rounded-3xl bg-blue-100 flex items-center justify-center mx-auto">
 
-              <h2 className="text-2xl font-bold">
-                Reminder Status
-              </h2>
-
-            </div>
-
-            <div className="h-[320px]">
-
-              <ResponsiveContainer width="100%" height="100%">
-
-                <PieChart>
-
-                  <Pie
-                    data={reminderPieData}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={90}
-                  >
-
-                    {reminderPieData.map(
-                      (
-                        entry,
-                        index
-                      ) => (
-
-                        <Cell
-                          key={index}
-                          fill={entry.color}
-                        />
-
-                      )
-                    )}
-
-                  </Pie>
-
-                  <Tooltip />
-
-                </PieChart>
-
-              </ResponsiveContainer>
+              <Users
+                size={40}
+                className="text-blue-600"
+              />
 
             </div>
 
-          </CardContent>
+            <h2 className="mt-6 text-3xl font-bold text-slate-900">
 
-        </Card>
+              Welcome to TaxNest
 
-        <Card className="border-0 shadow-md rounded-3xl">
-
-          <CardContent className="p-6 sm:p-8">
-
-            <div className="mb-8">
-
-              <h2 className="text-2xl font-bold">
-                Reminder Analytics
-              </h2>
-
-            </div>
-
-            <div className="h-[320px]">
-
-              <ResponsiveContainer width="100%" height="100%">
-
-                <BarChart data={reminderBarData}>
-
-                  <CartesianGrid strokeDasharray="3 3" />
-
-                  <XAxis dataKey="name" />
-
-                  <YAxis />
-
-                  <Tooltip />
-
-                  <Bar
-                    dataKey="value"
-                    radius={[8, 8, 0, 0]}
-                    fill="#2563eb"
-                  />
-
-                </BarChart>
-
-              </ResponsiveContainer>
-
-            </div>
-
-          </CardContent>
-
-        </Card>
-
-      </div>
-
-      {/* Upcoming Deadlines */}
-      <Card className="border-0 shadow-md rounded-3xl">
-
-        <CardContent className="p-6 sm:p-8">
-
-          <div className="mb-8">
-
-            <h2 className="text-2xl font-bold">
-              Upcoming Deadlines
             </h2>
 
-          </div>
+            <p className="mt-4 text-gray-500 max-w-2xl mx-auto leading-relaxed">
 
-          <div className="space-y-4">
+              Start by adding your first accounting client, creating reminders and uploading documents to manage your workflows efficiently.
 
-            {upcomingReminders.length === 0 ? (
+            </p>
 
-              <div className="text-center py-12">
+            <div className="flex flex-wrap justify-center gap-4 mt-8">
 
-                <p className="text-gray-500">
-                  No upcoming reminders.
-                </p>
+              <Link
+                href="/clients"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl transition flex items-center gap-2"
+              >
 
-              </div>
+                <UserPlus size={18} />
 
-            ) : (
+                Add Clients
 
-              upcomingReminders.map(
-                (reminder) => {
+              </Link>
 
-                  const urgency =
-                    getUrgency(
-                      reminder.due_date
-                    );
+              <Link
+                href="/reminders"
+                className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl transition flex items-center gap-2"
+              >
 
-                  return (
+                <Bell size={18} />
 
-                    <div
-                      key={reminder.id}
-                      className="border rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 hover:bg-gray-50 transition"
-                    >
+                Create Reminders
 
-                      <div>
+              </Link>
 
-                        <h3 className="font-semibold text-lg">
+              <Link
+                href="/documents"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl transition flex items-center gap-2"
+              >
 
-                          {reminder.client_name}
+                <Upload size={18} />
 
-                        </h3>
+                Upload Documents
 
-                        <p className="text-gray-500 mt-1">
-
-                          {reminder.message}
-
-                        </p>
-
-                      </div>
-
-                      <div className="flex flex-col lg:items-end gap-3">
-
-                        <span
-                          className={`px-4 py-2 rounded-full text-sm font-semibold w-fit ${urgency.color}`}
-                        >
-
-                          {urgency.label}
-
-                        </span>
-
-                        <p className="text-sm text-gray-500">
-
-                          Due:
-                          {" "}
-                          {new Date(
-                            reminder.due_date
-                          ).toLocaleDateString()}
-
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                  );
-                }
-              )
-
-            )}
-
-          </div>
-
-        </CardContent>
-
-      </Card>
-
-      {/* Activity Feed */}
-      <Card className="border-0 shadow-md rounded-3xl">
-
-        <CardContent className="p-6 sm:p-8">
-
-          <div className="flex items-center justify-between mb-8">
-
-            <div>
-
-              <h2 className="text-2xl font-bold">
-                Recent Activity
-              </h2>
+              </Link>
 
             </div>
 
-            <div className="hidden md:flex items-center gap-2 text-blue-600 font-medium">
+          </CardContent>
 
-              View All
+        </Card>
 
-              <ArrowRight size={18} />
+      ) : (
 
-            </div>
+        <>
+
+          {/* Analytics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+
+            <AnalyticsCard
+              title="Total Clients"
+              value={totalClients}
+              icon={<Users size={28} />}
+              color="blue"
+            />
+
+            <AnalyticsCard
+              title="Pending"
+              value={pendingReminders}
+              icon={<Clock3 size={28} />}
+              color="yellow"
+            />
+
+            <AnalyticsCard
+              title="Sent"
+              value={sentReminders}
+              icon={<Bell size={28} />}
+              color="blue"
+            />
+
+            <AnalyticsCard
+              title="Completed"
+              value={completedReminders}
+              icon={<CheckCircle2 size={28} />}
+              color="green"
+            />
+
+            <AnalyticsCard
+              title="Overdue"
+              value={overdueReminders}
+              icon={<AlertTriangle size={28} />}
+              color="red"
+            />
+
+            <AnalyticsCard
+              title="Due Within 7 Days"
+              value={dueSoonReminders}
+              icon={<Clock3 size={28} />}
+              color="orange"
+            />
+
+            <AnalyticsCard
+              title="Documents"
+              value={totalDocuments}
+              icon={<FileText size={28} />}
+              color="blue"
+            />
 
           </div>
 
-          <div className="space-y-4">
+          {/* Charts */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-            {activities.length === 0 ? (
+            <Card className="border-0 shadow-md rounded-3xl">
 
-              <div className="text-center py-16">
+              <CardContent className="p-6 sm:p-8">
 
-                <p className="text-gray-500">
-                  No recent activity yet.
-                </p>
+                <div className="mb-8">
+
+                  <h2 className="text-2xl font-bold">
+                    Reminder Status
+                  </h2>
+
+                </div>
+
+                <div className="h-[320px]">
+
+                  <ResponsiveContainer width="100%" height="100%">
+
+                    <PieChart>
+
+                      <Pie
+                        data={reminderPieData}
+                        dataKey="value"
+                        nameKey="name"
+                        outerRadius={90}
+                      >
+
+                        {reminderPieData.map(
+                          (
+                            entry,
+                            index
+                          ) => (
+
+                            <Cell
+                              key={index}
+                              fill={entry.color}
+                            />
+
+                          )
+                        )}
+
+                      </Pie>
+
+                      <Tooltip />
+
+                    </PieChart>
+
+                  </ResponsiveContainer>
+
+                </div>
+
+              </CardContent>
+
+            </Card>
+
+            <Card className="border-0 shadow-md rounded-3xl">
+
+              <CardContent className="p-6 sm:p-8">
+
+                <div className="mb-8">
+
+                  <h2 className="text-2xl font-bold">
+                    Reminder Analytics
+                  </h2>
+
+                </div>
+
+                <div className="h-[320px]">
+
+                  <ResponsiveContainer width="100%" height="100%">
+
+                    <BarChart data={reminderBarData}>
+
+                      <CartesianGrid strokeDasharray="3 3" />
+
+                      <XAxis dataKey="name" />
+
+                      <YAxis />
+
+                      <Tooltip />
+
+                      <Bar
+                        dataKey="value"
+                        radius={[8, 8, 0, 0]}
+                        fill="#2563eb"
+                      />
+
+                    </BarChart>
+
+                  </ResponsiveContainer>
+
+                </div>
+
+              </CardContent>
+
+            </Card>
+
+          </div>
+
+          {/* Upcoming Deadlines */}
+          <Card className="border-0 shadow-md rounded-3xl">
+
+            <CardContent className="p-6 sm:p-8">
+
+              <div className="mb-8">
+
+                <h2 className="text-2xl font-bold">
+                  Upcoming Deadlines
+                </h2>
 
               </div>
 
-            ) : (
+              <div className="space-y-4">
 
-              activities.map(
-                (
-                  activity,
-                  index
-                ) => (
+                {upcomingReminders.length === 0 ? (
 
-                  <div
-                    key={index}
-                    className="border rounded-2xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 hover:bg-gray-50 transition"
-                  >
+                  <div className="text-center py-12">
 
-                    <div>
-
-                      <p className="font-semibold text-slate-900">
-
-                        {activity.title}
-
-                      </p>
-
-                      <p className="text-sm text-gray-500 capitalize mt-1">
-
-                        {activity.type}
-
-                      </p>
-
-                    </div>
-
-                    <div className="text-sm text-gray-400">
-
-                      {new Date(
-                        activity.created_at
-                      ).toLocaleDateString()}
-
-                    </div>
+                    <p className="text-gray-500">
+                      No upcoming reminders.
+                    </p>
 
                   </div>
 
-                )
-              )
+                ) : (
 
-            )}
+                  upcomingReminders.map(
+                    (reminder) => {
 
-          </div>
+                      const urgency =
+                        getUrgency(
+                          reminder.due_date
+                        );
 
-        </CardContent>
+                      return (
 
-      </Card>
+                        <div
+                          key={reminder.id}
+                          className="border rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 hover:bg-gray-50 transition"
+                        >
+
+                          <div>
+
+                            <h3 className="font-semibold text-lg">
+
+                              {reminder.client_name}
+
+                            </h3>
+
+                            <p className="text-gray-500 mt-1">
+
+                              {reminder.message}
+
+                            </p>
+
+                          </div>
+
+                          <div className="flex flex-col lg:items-end gap-3">
+
+                            <span
+                              className={`px-4 py-2 rounded-full text-sm font-semibold w-fit ${urgency.color}`}
+                            >
+
+                              {urgency.label}
+
+                            </span>
+
+                            <p className="text-sm text-gray-500">
+
+                              Due:
+                              {" "}
+                              {new Date(
+                                reminder.due_date
+                              ).toLocaleDateString()}
+
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                      );
+                    }
+                  )
+
+                )}
+
+              </div>
+
+            </CardContent>
+
+          </Card>
+
+          {/* Activity Feed */}
+          <Card className="border-0 shadow-md rounded-3xl">
+
+            <CardContent className="p-6 sm:p-8">
+
+              <div className="flex items-center justify-between mb-8">
+
+                <div>
+
+                  <h2 className="text-2xl font-bold">
+                    Recent Activity
+                  </h2>
+
+                </div>
+
+                <div className="hidden md:flex items-center gap-2 text-blue-600 font-medium">
+
+                  View All
+
+                  <ArrowRight size={18} />
+
+                </div>
+
+              </div>
+
+              <div className="space-y-4">
+
+                {activities.length === 0 ? (
+
+                  <div className="text-center py-16">
+
+                    <p className="text-gray-500">
+                      No recent activity yet.
+                    </p>
+
+                  </div>
+
+                ) : (
+
+                  activities.map(
+                    (
+                      activity,
+                      index
+                    ) => (
+
+                      <div
+                        key={index}
+                        className="border rounded-2xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 hover:bg-gray-50 transition"
+                      >
+
+                        <div>
+
+                          <p className="font-semibold text-slate-900">
+
+                            {activity.title}
+
+                          </p>
+
+                          <p className="text-sm text-gray-500 capitalize mt-1">
+
+                            {activity.type}
+
+                          </p>
+
+                        </div>
+
+                        <div className="text-sm text-gray-400">
+
+                          {new Date(
+                            activity.created_at
+                          ).toLocaleDateString()}
+
+                        </div>
+
+                      </div>
+
+                    )
+                  )
+
+                )}
+
+              </div>
+
+            </CardContent>
+
+          </Card>
+
+        </>
+
+      )}
 
     </div>
   );

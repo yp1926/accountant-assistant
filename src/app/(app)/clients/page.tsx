@@ -8,6 +8,9 @@ import {
 } from "react";
 
 import { toast } from "sonner";
+
+import * as XLSX from "xlsx";
+
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 import { createClient } from "@/lib/client";
@@ -56,8 +59,24 @@ export default function ClientsPage() {
   const [company, setCompany] =
     useState("");
 
+  const [isCompany, setIsCompany] =
+    useState(true);
+
   const [addingClient, setAddingClient] =
     useState(false);
+
+  const [importingClients, setImportingClients] =
+    useState(false);
+
+  const [sortField, setSortField] =
+    useState<
+      "name" | "company"
+    >("name");
+
+  const [sortDirection, setSortDirection] =
+    useState<
+      "asc" | "desc"
+    >("asc");
 
   async function fetchClients() {
 
@@ -96,24 +115,14 @@ export default function ClientsPage() {
 
           client.name
             .toLowerCase()
-            .includes(
-              searchTerm.toLowerCase()
-            ) ||
-
-          client.email
-            .toLowerCase()
-            .includes(
-              searchTerm.toLowerCase()
-            ) ||
-
-          client.company
-            .toLowerCase()
-            .includes(
+            .startsWith(
               searchTerm.toLowerCase()
             )
       );
 
-    setFilteredClients(filtered);
+    setFilteredClients(
+      filtered
+    );
 
   }, [searchTerm, clients]);
 
@@ -145,36 +154,133 @@ export default function ClientsPage() {
             name,
             email,
             phone,
-            company,
-            user_id: user?.id,
+            company:
+              isCompany
+                ? company
+                : "Individual",
+            user_id:
+              user?.id,
           },
         ]);
 
     if (error) {
 
       setAddingClient(false);
-      
+
       toast.error(
         error.message
       );
 
-    } else {
+      return;
+    }
 
-      setName("");
+    setName("");
 
-      setEmail("");
+    setEmail("");
 
-      setPhone("");
+    setPhone("");
 
-      setCompany("");
+    setCompany("");
+
+    setIsCompany(true);
+
+    fetchClients();
+
+    toast.success(
+      "Client added successfully!"
+    );
+
+    setAddingClient(false);
+  }
+
+  async function handleImportClients(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+
+    const file =
+      event.target.files?.[0];
+
+    if (!file) return;
+
+    setImportingClients(true);
+
+    try {
+
+      const data =
+        await file.arrayBuffer();
+
+      const workbook =
+        XLSX.read(data);
+
+      const worksheet =
+        workbook.Sheets[
+          workbook.SheetNames[0]
+        ];
+
+      const jsonData =
+        XLSX.utils.sheet_to_json(
+          worksheet
+        );
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const formattedClients =
+        jsonData.map(
+          (row: any) => ({
+            name:
+              row.name || "",
+
+            email:
+              row.email || "",
+
+            phone:
+              row.phone || "",
+
+            company:
+              row.company ||
+              "Individual",
+
+            user_id:
+              user?.id,
+          })
+        );
+
+      const { error } =
+        await supabase
+          .from("clients")
+          .insert(
+            formattedClients
+          );
+
+      if (error) {
+
+        toast.error(
+          error.message
+        );
+
+        setImportingClients(false);
+
+        return;
+      }
 
       fetchClients();
 
       toast.success(
-        "Client added successfully!"
+        `${formattedClients.length} clients imported successfully!`
       );
-      setAddingClient(false);
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast.error(
+        "Failed to import Excel file."
+      );
     }
+
+    setImportingClients(false);
   }
 
   async function handleUpdateClient(
@@ -193,20 +299,21 @@ export default function ClientsPage() {
         .eq("id", client.id);
 
     if (error) {
+
       toast.error(
         error.message
       );
 
-    } else {
-
-      setEditingClientId(null);
-
-      fetchClients();
-
-      toast.success(
-        "Client updated successfully!"
-      );
+      return;
     }
+
+    setEditingClientId(null);
+
+    fetchClients();
+
+    toast.success(
+      "Client updated successfully!"
+    );
   }
 
   async function handleDeleteClient(
@@ -225,14 +332,14 @@ export default function ClientsPage() {
         "Cannot delete client with reminders."
       );
 
-    } else {
-
-      fetchClients();
-
-      toast.success(
-        "Client deleted successfully!"
-      );
+      return;
     }
+
+    fetchClients();
+
+    toast.success(
+      "Client deleted successfully!"
+    );
   }
 
   function handleClientChange(
@@ -256,7 +363,63 @@ export default function ClientsPage() {
     );
   }
 
+  function handleSort(
+    field:
+      | "name"
+      | "company"
+  ) {
+
+    let direction:
+      | "asc"
+      | "desc" = "asc";
+
+    if (
+      sortField === field &&
+      sortDirection === "asc"
+    ) {
+
+      direction = "desc";
+    }
+
+    setSortField(field);
+
+    setSortDirection(
+      direction
+    );
+
+    const sorted = [
+      ...filteredClients,
+    ].sort((a, b) => {
+
+      const valueA =
+        (
+          a[field] || ""
+        ).toLowerCase();
+
+      const valueB =
+        (
+          b[field] || ""
+        ).toLowerCase();
+
+      if (direction === "asc") {
+
+        return valueA.localeCompare(
+          valueB
+        );
+      }
+
+      return valueB.localeCompare(
+        valueA
+      );
+    });
+
+    setFilteredClients(
+      sorted
+    );
+  }
+
   return (
+
     <main className="space-y-8">
 
       {/* Header */}
@@ -304,7 +467,9 @@ export default function ClientsPage() {
                 <div>
 
                   <p className="text-blue-100 text-sm">
+
                     Total Clients
+
                   </p>
 
                   <h2 className="text-4xl font-bold mt-1">
@@ -339,11 +504,15 @@ export default function ClientsPage() {
           <div>
 
             <h2 className="text-2xl font-bold">
+
               Add Client
+
             </h2>
 
             <p className="text-gray-500 mt-1">
+
               Create a new client profile.
+
             </p>
 
           </div>
@@ -375,7 +544,7 @@ export default function ClientsPage() {
           />
 
           <input
-            className="border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-[54px] border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Phone"
             value={phone}
             onChange={(e) =>
@@ -385,23 +554,62 @@ export default function ClientsPage() {
             }
           />
 
-          <input
-            className="border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Company"
-            value={company}
-            onChange={(e) =>
-              setCompany(
-                e.target.value
-              )
-            }
-          />
+          <div className="space-y-3">
+
+            <input
+              disabled={!isCompany}
+              className={`border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 w-full ${
+                !isCompany
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : ""
+              }`}
+              placeholder="Company"
+              value={
+                isCompany
+                  ? company
+                  : "Individual"
+              }
+              onChange={(e) =>
+                setCompany(
+                  e.target.value
+                )
+              }
+            />
+
+            <div className="flex flex-wrap items-center gap-4">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setIsCompany(
+                    !isCompany
+                  )
+                }
+                className={`px-4 py-3 rounded-2xl text-sm font-medium transition ${
+                  isCompany
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+              >
+
+                {isCompany
+                  ? "Company Client"
+                  : "Individual Client"}
+
+              </button>
+
+            </div>
+
+          </div>
 
         </div>
 
-        <button
+        <div className="flex flex-wrap gap-4 mt-4">
+
+          <button
             onClick={handleAddClient}
             disabled={addingClient}
-            className="mt-6 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl transition"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl transition"
           >
 
             {addingClient
@@ -409,6 +617,29 @@ export default function ClientsPage() {
               : "Add Client"}
 
           </button>
+
+          <label className="cursor-pointer">
+
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={
+                handleImportClients
+              }
+            />
+
+            <div className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl transition inline-flex items-center gap-2">
+
+              {importingClients
+                ? "Importing..."
+                : "Add Multiple"}
+
+            </div>
+
+          </label>
+
+        </div>
 
       </div>
 
@@ -420,11 +651,15 @@ export default function ClientsPage() {
           <div>
 
             <h2 className="text-2xl font-bold">
+
               Client List
+
             </h2>
 
             <p className="text-gray-500 mt-2">
+
               Browse and manage your accounting clients.
+
             </p>
 
           </div>
@@ -484,9 +719,18 @@ export default function ClientsPage() {
 
                 <tr className="border-b text-left">
 
-                  <th className="py-4 px-4 font-semibold text-slate-700">
+                  <th className="px-4 py-4 font-semibold">
 
-                    Name
+                    <button
+                      onClick={() =>
+                        handleSort("name")
+                      }
+                      className="hover:text-blue-600 transition"
+                    >
+
+                      Name
+
+                    </button>
 
                   </th>
 
@@ -502,9 +746,20 @@ export default function ClientsPage() {
 
                   </th>
 
-                  <th className="py-4 px-4 font-semibold text-slate-700">
+                  <th className="px-4 py-4 font-semibold">
 
-                    Company
+                    <button
+                      onClick={() =>
+                        handleSort(
+                          "company"
+                        )
+                      }
+                      className="hover:text-blue-600 transition"
+                    >
+
+                      Company
+
+                    </button>
 
                   </th>
 
@@ -624,7 +879,22 @@ export default function ClientsPage() {
                           />
 
                         ) : (
-                          client.company
+
+                          client.company ===
+                          "Individual" ? (
+
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-sm font-medium">
+
+                              Individual
+
+                            </span>
+
+                          ) : (
+
+                            client.company
+
+                          )
+
                         )}
 
                       </td>
@@ -667,27 +937,27 @@ export default function ClientsPage() {
                             </button>
 
                             <ConfirmDialog
-                                title="Delete Client"
-                                description="This action will permanently remove the client. This cannot be undone."
-                                confirmText="Delete"
-                                onConfirm={() =>
-                                  handleDeleteClient(
-                                    client.id
-                                  )
-                                }
+                              title="Delete Client"
+                              description="This action will permanently remove the client. This cannot be undone."
+                              confirmText="Delete"
+                              onConfirm={() =>
+                                handleDeleteClient(
+                                  client.id
+                                )
+                              }
+                            >
+
+                              <button
+                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
                               >
 
-                                <button
-                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition flex items-center gap-2"
-                                >
+                                <Trash2 size={16} />
 
-                                  <Trash2 size={16} />
+                                Delete
 
-                                  Delete
+                              </button>
 
-                                </button>
-
-                              </ConfirmDialog>
+                            </ConfirmDialog>
 
                           </div>
 
