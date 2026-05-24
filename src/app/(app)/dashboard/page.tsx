@@ -87,6 +87,10 @@ export default function DashboardPage() {
   const [upcomingReminders, setUpcomingReminders] =
     useState<UpcomingReminder[]>([]);
 
+  const [loading, setLoading] =
+    useState(true);
+  
+
   async function fetchDashboardData() {
 
     const {

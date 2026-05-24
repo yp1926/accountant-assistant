@@ -33,7 +33,9 @@ type Reminder = {
   due_date: string;
   status: string;
   frequency: string;
-};
+  sent_count?: number;
+  last_sent_at?: string;
+  };
 
 type Client = {
   id: number;
@@ -50,9 +52,12 @@ export default function RemindersPage() {
   const [reminders, setReminders] =
     useState<Reminder[]>([]);
 
-  const [filteredReminders, setFilteredReminders] =
+    const [filteredReminders, setFilteredReminders] =
     useState<Reminder[]>([]);
-
+  
+  const [selectedReminders, setSelectedReminders] =
+    useState<number[]>([]);
+  
   const [editingReminderId, setEditingReminderId] =
     useState<number | null>(null);
 
@@ -105,8 +110,13 @@ export default function RemindersPage() {
       "asc" | "desc"
     >("asc");
 
-    const [showMessageModal, setShowMessageModal] =
+  const [showMessageModal, setShowMessageModal] =
     useState(false);
+
+  const [viewMode, setViewMode] =
+    useState<
+      "table" | "calendar"
+    >("table");
 
 
   const todayDate =
@@ -435,7 +445,7 @@ export default function RemindersPage() {
     field: keyof Reminder,
     value: string
   ) {
-
+  
     setReminders(
       (prevReminders) =>
         prevReminders.map(
@@ -448,6 +458,24 @@ export default function RemindersPage() {
                 }
               : reminder
         )
+    );
+  }
+  
+  function toggleReminderSelection(
+    id: number
+  ) {
+  
+    setSelectedReminders(
+      (prev) =>
+  
+        prev.includes(id)
+  
+          ? prev.filter(
+              (item) =>
+                item !== id
+            )
+  
+          : [...prev, id]
     );
   }
 
@@ -608,10 +636,20 @@ export default function RemindersPage() {
 
     if (result.success) {
 
+      const reminder =
+  reminders.find(
+    (r) =>
+      r.id === id
+  );
+
       await supabase
         .from("reminders")
         .update({
           status: "sent",
+
+          sent_count:
+            (reminder
+              ?.sent_count || 0) + 1,
 
           last_sent_at:
             new Date()
@@ -633,6 +671,73 @@ export default function RemindersPage() {
 
       toast.error(
         "Failed to send reminder email."
+      );
+    }
+  }
+
+  async function handleBulkSend() {
+
+    if (
+      selectedReminders.length ===
+      0
+    ) {
+  
+      toast.error(
+        "Select reminders first."
+      );
+  
+      return;
+    }
+  
+    try {
+  
+      for (const id of selectedReminders) {
+  
+        const reminder =
+          reminders.find(
+            (r) =>
+              r.id === id
+          );
+  
+        if (
+          !reminder
+        ) {
+  
+          continue;
+        }
+  
+        if (
+          reminder.status ===
+          "completed"
+        ) {
+  
+          continue;
+        }
+  
+        await handleSendEmail(
+          reminder.id,
+          reminder.client_name,
+          reminder.client_email,
+          reminder.message
+        );
+      }
+  
+      setSelectedReminders(
+        []
+      );
+  
+      toast.success(
+        "Selected reminders sent successfully!"
+      );
+  
+    } catch (error) {
+  
+      console.error(
+        error
+      );
+  
+      toast.error(
+        "Failed to send selected reminders."
       );
     }
   }
@@ -783,6 +888,57 @@ export default function RemindersPage() {
     }
   
     return 3;
+  }
+
+  function getLastActionLabel(
+    reminder: Reminder
+  ) {
+  
+    if (
+      !reminder.last_sent_at
+    ) {
+  
+      return "Never Sent";
+    }
+  
+    const now =
+      new Date();
+  
+    const sentDate =
+      new Date(
+        reminder.last_sent_at
+      );
+  
+    const diffTime =
+      now.getTime() -
+      sentDate.getTime();
+  
+    const diffDays =
+      Math.floor(
+        diffTime /
+          (
+            1000 *
+            60 *
+            60 *
+            24
+          )
+      );
+  
+    if (
+      diffDays === 0
+    ) {
+  
+      return "Sent Today";
+    }
+  
+    if (
+      diffDays === 1
+    ) {
+  
+      return "Sent Yesterday";
+    }
+  
+    return `Sent ${diffDays} days ago`;
   }
 
   function handleSort(
@@ -1147,9 +1303,91 @@ export default function RemindersPage() {
 
           <div>
 
-            <h2 className="text-2xl font-bold">
-              Reminder Workflows
-            </h2>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+            <div className="flex flex-wrap items-center gap-4">
+
+              <h2 className="text-2xl font-bold">
+
+                Reminder Workflows
+
+              </h2>
+
+              {selectedReminders.length > 0 && (
+
+                <div className="flex flex-wrap items-center gap-3">
+
+                  <button
+                    onClick={
+                      handleBulkSend
+                    }
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl transition"
+                  >
+
+                    Send Selected (
+                    {selectedReminders.length}
+                    )
+
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      setSelectedReminders([])
+                    }
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-3 rounded-2xl transition"
+                  >
+
+                    Clear Selection
+
+                  </button>
+
+                </div>
+
+              )}
+
+            </div>
+
+            <div className="flex items-center gap-3">
+
+              <button
+                onClick={() =>
+                  setViewMode(
+                    "table"
+                  )
+                }
+                className={`px-5 py-2 rounded-2xl transition ${
+                  viewMode ===
+                  "table"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+
+                Table View
+
+              </button>
+
+              <button
+                onClick={() =>
+                  setViewMode(
+                    "calendar"
+                  )
+                }
+                className={`px-5 py-2 rounded-2xl transition ${
+                  viewMode ===
+                  "calendar"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+
+                Calendar View
+
+              </button>
+
+            </div>
+
+          </div>
 
           </div>
 
@@ -1230,30 +1468,34 @@ export default function RemindersPage() {
 
           </div>
 
-        ) : (
+          ) : viewMode === "table" ? (
 
           <div className="overflow-x-auto">
 
             <table className="w-full min-w-[1300px]">
 
-              <thead>
+            <thead>
 
-                <tr className="border-b text-left">
+              <tr className="border-b text-left">
+
+                <th className="px-4 py-4">
+
+                </th>
 
                 <th className="px-4 py-4 font-semibold">
 
-                    <button
-                      onClick={() =>
-                        handleSort("client")
-                      }
-                      className="hover:text-blue-600 transition"
-                    >
+                  <button
+                    onClick={() =>
+                      handleSort("client")
+                    }
+                    className="hover:text-blue-600 transition"
+                  >
 
-                      Client
+                    Client
 
-                    </button>
+                  </button>
 
-                    </th>
+                </th>
 
                   <th className="px-4 py-4 font-semibold">
                     Email
@@ -1303,20 +1545,26 @@ export default function RemindersPage() {
 
                     <th className="px-4 py-4 font-semibold">
 
-                        <button
-                          onClick={() =>
-                            handleSort(
-                              "status"
-                            )
-                          }
-                          className="hover:text-blue-600 transition"
-                        >
+                      <button
+                        onClick={() =>
+                          handleSort(
+                            "status"
+                          )
+                        }
+                        className="hover:text-blue-600 transition"
+                      >
 
-                          Status
+                        Status
 
-                        </button>
+                      </button>
 
-                        </th>
+                    </th>
+
+                    <th className="py-4 px-4 font-semibold text-slate-700">
+
+                      Activity
+
+                    </th>
 
                   <th className="px-4 py-4 font-semibold">
                     Actions
@@ -1335,6 +1583,23 @@ export default function RemindersPage() {
                       key={reminder.id}
                       className="border-b hover:bg-gray-50 transition"
                     >
+
+                      <td className="px-4 py-5">
+
+                      <input
+                        type="checkbox"
+                        checked={selectedReminders.includes(
+                          reminder.id
+                        )}
+                        onChange={() =>
+                          toggleReminderSelection(
+                            reminder.id
+                          )
+                        }
+                        className="w-4 h-4"
+                      />
+
+                      </td>
 
                       <td className="px-4 py-5 font-semibold">
 
@@ -1499,6 +1764,47 @@ export default function RemindersPage() {
 
                       </td>
 
+                      <td className="px-4 py-5 text-sm text-gray-600">
+
+                        <div className="space-y-1">
+
+                          <div>
+
+                            Sent{" "}
+                            <span className="font-semibold">
+
+                              {reminder.sent_count || 0}
+
+                            </span>{" "}
+                            times
+
+                            </div>
+
+                            <div className="text-xs font-medium text-blue-600">
+
+                            {getLastActionLabel(
+                              reminder
+                            )}
+
+                            </div>
+
+                          {reminder.last_sent_at && (
+
+                            <div className="text-xs text-gray-500">
+
+                              Last sent:{" "}
+                              {new Date(
+                                reminder.last_sent_at
+                              ).toLocaleDateString()}
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                      </td>
+
                       <td className="px-4 py-5 capitalize font-medium">
 
                         {reminder.status}
@@ -1632,11 +1938,168 @@ export default function RemindersPage() {
 
               </tbody>
 
-            </table>
+              </table>
 
-          </div>
+            </div>
 
-        )}
+            ) : (
+
+              <div className="bg-white border border-gray-200 rounded-3xl p-6">
+
+                <div className="flex items-center justify-between mb-8">
+
+                  <h3 className="text-2xl font-bold text-slate-800">
+
+                    Reminder Calendar
+
+                  </h3>
+
+                  <div className="text-sm text-gray-500">
+
+                    {new Date().toLocaleString(
+                      "default",
+                      {
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
+
+                  </div>
+
+                </div>
+
+                <div className="grid grid-cols-7 gap-3 mb-4">
+
+                  {[
+                    "Sun",
+                    "Mon",
+                    "Tue",
+                    "Wed",
+                    "Thu",
+                    "Fri",
+                    "Sat",
+                  ].map((day) => (
+
+                    <div
+                      key={day}
+                      className="text-center text-sm font-semibold text-gray-500 py-2"
+                    >
+
+                      {day}
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+                <div className="grid grid-cols-7 gap-3">
+
+                {Array.from({
+                  length: 35,
+                }).map((_, index) => {
+
+                  const day =
+                    index + 1;
+
+                  const dayReminders =
+                    filteredReminders.filter(
+                      (reminder) => {
+
+                        const reminderDate =
+                          new Date(
+                            reminder.due_date
+                          );
+
+                        return (
+                          reminderDate.getDate() ===
+                          day
+                        );
+                      }
+                    );
+
+                  return (
+
+                    <div
+                      key={index}
+                      className="border border-gray-200 rounded-2xl min-h-[140px] p-3 hover:border-blue-400 transition bg-gray-50 overflow-hidden"
+                    >
+
+                      <div className="text-sm font-semibold text-gray-700 mb-3">
+
+                        {day <= 31
+                          ? day
+                          : ""}
+
+                      </div>
+
+                      <div className="space-y-2">
+
+                        {dayReminders
+                          .slice(0, 3)
+                          .map(
+                            (reminder) => (
+
+                              <div
+                                key={reminder.id}
+                                className={`text-xs rounded-xl px-2 py-2 text-white truncate ${
+                                  reminder.status ===
+                                  "completed"
+                                    ? "bg-green-600"
+
+                                    : getPriorityLabel(
+                                        reminder.due_date,
+                                        reminder.status
+                                      ) ===
+                                      "Overdue"
+                                    ? "bg-red-600"
+
+                                    : getPriorityLabel(
+                                        reminder.due_date,
+                                        reminder.status
+                                      ) ===
+                                      "Due Soon"
+                                    ? "bg-yellow-500"
+
+                                    : "bg-blue-600"
+                                }`}
+                              >
+
+                                {
+                                  reminder.client_name
+                                }
+
+                              </div>
+
+                            )
+                          )}
+
+                        {dayReminders.length >
+                          3 && (
+
+                          <div className="text-xs text-gray-500 font-medium">
+
+                            +
+                            {dayReminders.length -
+                              3}{" "}
+                            more
+
+                          </div>
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  );
+                })}
+
+                </div>
+
+              </div>
+
+              )}
 
       </div>
 
