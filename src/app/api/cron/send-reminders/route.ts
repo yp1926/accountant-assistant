@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 import { Resend } from "resend";
 
 import { createClient } from "@supabase/supabase-js";
@@ -12,50 +14,136 @@ const supabase =
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-export async function GET() {
+export async function GET(
+  request: Request
+) {
 
   try {
 
-    const today =
-      new Date()
-        .toISOString()
-        .split("T")[0];
+    const authHeader =
+      request.headers.get(
+        "authorization"
+      );
 
-    // Fetch reminders due today or earlier
-    const {
-      data: reminders,
-      error,
-    } = await supabase
-      .from("reminders")
-      .select("*")
-      .neq("status", "completed")
-      .lte("due_date", today);
+    if (
+      authHeader !==
+      `Bearer ${process.env.CRON_SECRET}`
+    ) {
 
-    if (error) {
-
-      console.error(error);
-
-      return Response.json({
-        success: false,
-        error,
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Unauthorized",
+        },
+        {
+          status: 401,
+        }
+      );
     }
 
-    let sentCount = 0;
+    const today =
+      new Date();
 
-    for (const reminder of reminders || []) {
+    const remindersResult =
+      await supabase
+        .from("reminders")
+        .select("*")
+        .neq(
+          "status",
+          "completed"
+        );
+
+    const reminders =
+      remindersResult.data || [];
+
+    let processed =
+      0;
+
+    let sent =
+      0;
+
+    for (const reminder of reminders) {
+
+      processed++;
+
+      const dueDate =
+        new Date(
+          reminder.due_date
+        );
+
+      const diffTime =
+        dueDate.getTime() -
+        today.getTime();
+
+      const diffDays =
+        Math.ceil(
+          diffTime /
+            (
+              1000 *
+              60 *
+              60 *
+              24
+            )
+        );
+
+      let shouldSend =
+        false;
+
+      let updateField =
+        "";
+
+      let subject =
+        "";
+
+      if (
+        diffDays === 7 &&
+        !reminder.reminder_7_sent
+      ) {
+
+        shouldSend = true;
+
+        updateField =
+          "reminder_7_sent";
+
+        subject =
+          "Upcoming Reminder (7 Days Left)";
+      }
+
+      else if (
+        diffDays === 1 &&
+        !reminder.reminder_1_sent
+      ) {
+
+        shouldSend = true;
+
+        updateField =
+          "reminder_1_sent";
+
+        subject =
+          "Reminder Due Tomorrow";
+      }
+
+      else if (
+        diffDays === 0 &&
+        !reminder.due_reminder_sent
+      ) {
+
+        shouldSend = true;
+
+        updateField =
+          "due_reminder_sent";
+
+        subject =
+          "Reminder Due Today";
+      }
+
+      if (!shouldSend) {
+
+        continue;
+      }
 
       try {
 
-        // Prevent duplicate sends
-        if (
-          reminder.status === "sent"
-        ) {
-
-          continue;
-        }
-
-        // Send email
         const {
           error: emailError,
         } =
@@ -66,13 +154,12 @@ export async function GET() {
             to:
               reminder.client_email,
 
-            subject:
-              `Reminder for ${reminder.client_name}`,
+            subject,
 
             html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <div style="font-family: Arial, sans-serif; padding: 24px;">
 
-                <h2 style="color: #111827;">
+                <h2 style="color:#111827;">
                   TaxNest Reminder
                 </h2>
 
@@ -93,7 +180,7 @@ export async function GET() {
 
                 <br />
 
-                <p style="color: #6B7280; font-size: 14px;">
+                <p style="font-size:14px;color:#6B7280;">
                   Sent automatically by TaxNest.
                 </p>
 
@@ -110,11 +197,17 @@ export async function GET() {
           continue;
         }
 
-        // Mark as sent only
         await supabase
           .from("reminders")
           .update({
-            status: "sent",
+            [updateField]:
+              true,
+
+            status:
+              "sent",
+
+            sent_count:
+              (reminder.sent_count || 0) + 1,
 
             last_sent_at:
               new Date()
@@ -125,28 +218,31 @@ export async function GET() {
             reminder.id
           );
 
-        sentCount++;
+        sent++;
 
-      } catch (err) {
+      } catch (error) {
 
-        console.error(err);
+        console.error(error);
       }
     }
 
-    return Response.json({
+    return NextResponse.json({
       success: true,
-      processed:
-        reminders?.length || 0,
-      sent: sentCount,
+      processed,
+      sent,
     });
 
   } catch (error) {
 
     console.error(error);
 
-    return Response.json({
-      success: false,
-      error,
-    });
+    return NextResponse.json(
+      {
+        success: false,
+      },
+      {
+        status: 500,
+      }
+    );
   }
 }

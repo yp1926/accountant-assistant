@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import {
+import React, {
   useEffect,
   useState,
 } from "react";
@@ -117,6 +117,14 @@ export default function RemindersPage() {
     useState<
       "table" | "calendar"
     >("table");
+  
+  const [selectedCalendarDay, setSelectedCalendarDay] =
+    useState<number | null>(null);
+  
+  const [currentCalendarDate, setCurrentCalendarDate] =
+    useState(
+      new Date()
+    );
 
 
   const todayDate =
@@ -1084,6 +1092,51 @@ export default function RemindersPage() {
     );
   }
 
+  async function handleRunAutomation() {
+
+    try {
+  
+      const response =
+        await fetch(
+          "/api/cron/send-reminders",
+          {
+            method: "GET",
+            headers: {
+              Authorization:
+                `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET}`,
+            },
+          }
+        );
+  
+      const result =
+        await response.json();
+  
+      if (result.success) {
+  
+        toast.success(
+          "Automation executed successfully!"
+        );
+  
+        fetchReminders();
+  
+      } else {
+  
+        toast.error(
+          result.error ||
+            "Automation failed."
+        );
+      }
+  
+    } catch (error) {
+  
+      console.error(error);
+  
+      toast.error(
+        "Automation failed."
+      );
+    }
+  }
+
   return (
     <main className="space-y-8">
 
@@ -1346,6 +1399,17 @@ export default function RemindersPage() {
               )}
 
             </div>
+
+            <button
+              onClick={
+                handleRunAutomation
+              }
+              className="px-5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white transition"
+            >
+
+              Run Automation
+
+            </button>
 
             <div className="flex items-center gap-3">
 
@@ -1948,15 +2012,34 @@ export default function RemindersPage() {
 
                 <div className="flex items-center justify-between mb-8">
 
-                  <h3 className="text-2xl font-bold text-slate-800">
+                <h3 className="text-2xl font-bold text-slate-800">
 
-                    Reminder Calendar
+                  Reminder Calendar
 
-                  </h3>
+                </h3>
 
-                  <div className="text-sm text-gray-500">
+                <div className="flex items-center gap-4">
 
-                    {new Date().toLocaleString(
+                  <button
+                    onClick={() =>
+                      setCurrentCalendarDate(
+                        new Date(
+                          currentCalendarDate.getFullYear(),
+                          currentCalendarDate.getMonth() - 1,
+                          1
+                        )
+                      )
+                    }
+                    className="w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-100 transition flex items-center justify-center"
+                  >
+
+                    ←
+
+                  </button>
+
+                  <div className="text-sm font-medium text-gray-600 min-w-[140px] text-center">
+
+                    {currentCalendarDate.toLocaleString(
                       "default",
                       {
                         month: "long",
@@ -1965,6 +2048,25 @@ export default function RemindersPage() {
                     )}
 
                   </div>
+
+                  <button
+                    onClick={() =>
+                      setCurrentCalendarDate(
+                        new Date(
+                          currentCalendarDate.getFullYear(),
+                          currentCalendarDate.getMonth() + 1,
+                          1
+                        )
+                      )
+                    }
+                    className="w-10 h-10 rounded-xl border border-gray-200 hover:bg-gray-100 transition flex items-center justify-center"
+                  >
+
+                    →
+
+                  </button>
+
+                </div>
 
                 </div>
 
@@ -1996,11 +2098,35 @@ export default function RemindersPage() {
                 <div className="grid grid-cols-7 gap-3">
 
                 {Array.from({
-                  length: 35,
+                  length: new Date(
+                    currentCalendarDate.getFullYear(),
+                    currentCalendarDate.getMonth() + 1,
+                    0
+                  ).getDate(),
                 }).map((_, index) => {
 
                   const day =
                     index + 1;
+                
+                    const firstDayOfMonth =
+                      new Date(
+                        currentCalendarDate.getFullYear(),
+                        currentCalendarDate.getMonth(),
+                        1
+                      ).getDay();
+
+                    
+
+                    const isToday =
+
+                      day ===
+                        new Date().getDate() &&
+
+                      currentCalendarDate.getMonth() ===
+                        new Date().getMonth() &&
+
+                      currentCalendarDate.getFullYear() ===
+                        new Date().getFullYear();
 
                   const dayReminders =
                     filteredReminders.filter(
@@ -2011,27 +2137,75 @@ export default function RemindersPage() {
                             reminder.due_date
                           );
 
-                        return (
-                          reminderDate.getDate() ===
-                          day
-                        );
+                          return (
+
+                            reminderDate.getDate() ===
+                              day &&
+                          
+                            reminderDate.getMonth() ===
+                              currentCalendarDate.getMonth() &&
+                          
+                            reminderDate.getFullYear() ===
+                              currentCalendarDate.getFullYear()
+                          
+                          );
                       }
                     );
 
-                  return (
+                    return (
 
-                    <div
+                      <React.Fragment key={index}>
+                    
+                        {index === 0 &&
+                    
+                          Array.from({
+                            length:
+                              firstDayOfMonth,
+                          }).map((_, emptyIndex) => (
+                    
+                            <div
+                              key={`empty-${emptyIndex}`}
+                              className="min-h-[140px]"
+                            />
+                    
+                        ))}
+                    
+                        <div
                       key={index}
-                      className="border border-gray-200 rounded-2xl min-h-[140px] p-3 hover:border-blue-400 transition bg-gray-50 overflow-hidden"
+                      onClick={() =>
+                        setSelectedCalendarDay(
+                          day
+                        )
+                      }
+                      className={`border rounded-2xl min-h-[140px] p-3 hover:border-blue-400 hover:bg-blue-50 hover:scale-[1.02] transition-all duration-200 overflow-hidden cursor-pointer ${
+                        isToday
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 bg-gray-50"
+                      }`}
                     >
 
-                      <div className="text-sm font-semibold text-gray-700 mb-3">
+                    <div className={`text-sm font-semibold mb-3 ${
+                      isToday
+                        ? "text-blue-700"
+                        : "text-gray-700"
+                    }`}>
 
-                        {day <= 31
-                          ? day
-                          : ""}
+                      {day}
 
                       </div>
+
+                      {dayReminders.length > 0 && (
+
+                        <div className="text-[11px] font-medium text-gray-500 mb-2">
+
+                          {dayReminders.length} reminder
+                          {dayReminders.length > 1
+                            ? "s"
+                            : ""}
+
+                        </div>
+
+                        )}
 
                       <div className="space-y-2">
 
@@ -2090,9 +2264,11 @@ export default function RemindersPage() {
 
                       </div>
 
-                    </div>
+                      </div>
 
-                  );
+                    </React.Fragment>
+
+                    );
                 })}
 
                 </div>
@@ -2102,6 +2278,223 @@ export default function RemindersPage() {
               )}
 
       </div>
+
+      {selectedCalendarDay && (
+
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+        onClick={() =>
+          setSelectedCalendarDay(
+            null
+          )
+        }
+      >
+
+      <div
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl p-6 space-y-6 max-h-[80vh] overflow-y-auto animate-in zoom-in-95 duration-200"
+        onClick={(e) =>
+          e.stopPropagation()
+        }
+      >
+
+    <div className="flex items-center justify-between">
+
+      <div>
+
+        <h2 className="text-2xl font-bold">
+
+          Reminders for Day{" "}
+          {selectedCalendarDay}
+
+        </h2>
+
+        <p className="text-gray-500 mt-1">
+
+          Calendar reminder overview
+
+        </p>
+
+      </div>
+
+      <button
+        onClick={() =>
+          setSelectedCalendarDay(
+            null
+          )
+        }
+        className="text-gray-500 hover:text-black text-xl"
+      >
+
+        ✕
+
+      </button>
+
+    </div>
+
+    <div className="space-y-4">
+
+      {filteredReminders
+        .filter(
+          (reminder) => {
+
+            const reminderDate =
+              new Date(
+                reminder.due_date
+              );
+
+              return (
+
+                reminderDate.getDate() ===
+                  selectedCalendarDay &&
+              
+                reminderDate.getMonth() ===
+                  currentCalendarDate.getMonth() &&
+              
+                reminderDate.getFullYear() ===
+                  currentCalendarDate.getFullYear()
+              
+              );
+          }
+        )
+        .map(
+          (reminder) => (
+
+            <div
+              key={reminder.id}
+              className="border border-gray-200 rounded-2xl p-5"
+            >
+
+              <div className="flex items-start justify-between gap-4">
+
+                <div>
+
+                  <h3 className="font-semibold text-lg">
+
+                    {
+                      reminder.client_name
+                    }
+
+                  </h3>
+
+                  <p className="text-gray-500 mt-1">
+
+                    {
+                      reminder.client_email
+                    }
+
+                  </p>
+
+                </div>
+
+                <span
+                  className={`px-3 py-1 rounded-full text-xs text-white ${getPriorityColor(
+                    reminder.due_date,
+                    reminder.status
+                  )}`}
+                >
+
+                  {getPriorityLabel(
+                    reminder.due_date,
+                    reminder.status
+                  )}
+
+                </span>
+
+              </div>
+
+              <div className="mt-4 text-gray-700">
+
+                {reminder.message}
+
+              </div>
+
+              <div className="flex items-center gap-2 mt-5">
+
+                {reminder.status ===
+                  "pending" && (
+
+                  <button
+                    title="Send Reminder"
+                    onClick={() =>
+                      handleSendEmail(
+                        reminder.id,
+                        reminder.client_name,
+                        reminder.client_email,
+                        reminder.message
+                      )
+                    }
+                    className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition"
+                  >
+
+                    <Mail size={16} />
+
+                  </button>
+
+                )}
+
+                  {reminder.status !==
+                    "completed" && (
+
+                    <ConfirmDialog
+                      title="Complete Reminder"
+                      description="Mark this reminder as completed?"
+                      confirmText="Complete"
+                      onConfirm={() =>
+                        handleCompleteReminder(
+                          reminder
+                        )
+                      }
+                    >
+
+                      <button
+                        title="Complete Reminder"
+                        className="w-10 h-10 rounded-xl bg-green-600 hover:bg-green-700 text-white flex items-center justify-center transition"
+                      >
+
+                        <CheckCircle2 size={16} />
+
+                      </button>
+
+                    </ConfirmDialog>
+
+                  )}
+
+                <ConfirmDialog
+                  title="Delete Reminder"
+                  description="This reminder will be permanently deleted."
+                  confirmText="Delete"
+                  onConfirm={() =>
+                    handleDeleteReminder(
+                      reminder.id
+                    )
+                  }
+                >
+
+                  <button
+                    title="Delete Reminder"
+                    className="w-10 h-10 rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition"
+                  >
+
+                    <Trash2 size={16} />
+
+                  </button>
+
+                </ConfirmDialog>
+
+              </div>
+
+            </div>
+
+          )
+        )}
+
+    </div>
+
+  </div>
+
+</div>
+
+)}
 
       {showMessageModal && (
 
