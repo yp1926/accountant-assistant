@@ -72,17 +72,27 @@ export default function DocumentsPage() {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const { data: profile } =
+    await supabase
+      .from("profiles")
+      .select("workspace_id")
+      .eq("id", user?.id)
+      .single();
+
     const { data } = await supabase
       .from("clients")
       .select("id, name")
-      .eq("user_id", user?.id)
+      .eq(
+        "workspace_id",
+        profile?.workspace_id
+      )
       .order("name");
 
-    if (data) {
+        if (data) {
 
-      setClients(data);
-    }
-  }
+          setClients(data);
+        }
+      }
 
   async function fetchDocuments() {
 
@@ -90,19 +100,29 @@ export default function DocumentsPage() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const { data } = await supabase
-      .from("documents")
-      .select(`
-        *,
-        clients (
-          id,
-          name
-        )
-      `)
-      .eq("user_id", user?.id)
-      .order("id", {
-        ascending: false,
-      });
+    const { data: profile } =
+  await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user?.id)
+    .single();
+
+  const { data } = await supabase
+    .from("documents")
+    .select(`
+      *,
+      clients (
+        id,
+        name
+      )
+    `)
+    .eq(
+      "workspace_id",
+      profile?.workspace_id
+    )
+    .order("id", {
+      ascending: false,
+    });
 
     if (data) {
 
@@ -205,6 +225,13 @@ export default function DocumentsPage() {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("workspace_id")
+        .eq("id", user?.id)
+        .single();
+
     const fileExt =
       selectedFile.name
         .split(".")
@@ -242,14 +269,21 @@ export default function DocumentsPage() {
           {
             user_id:
               user?.id,
+
+            workspace_id:
+              profile?.workspace_id,
+
             client_id:
               Number(
                 selectedClientId
               ),
+
             file_name:
               selectedFile.name,
+
             file_path:
               filePath,
+
             file_size:
               selectedFile.size,
           },

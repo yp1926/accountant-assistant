@@ -93,6 +93,7 @@ export default function DashboardPage() {
 
   async function fetchDashboardData() {
 
+    try {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -100,10 +101,12 @@ export default function DashboardPage() {
     // Profile
     const { data: profile } =
       await supabase
-        .from("profiles")
-        .select("business_name")
-        .eq("id", user?.id)
-        .single();
+      .from("profiles")
+      .select(
+        "business_name, workspace_id"
+      )
+      .eq("id", user?.id)
+      .single();
 
     if (profile?.business_name) {
 
@@ -111,6 +114,9 @@ export default function DashboardPage() {
         profile.business_name
       );
     }
+
+    const workspaceId =
+      profile?.workspace_id;
 
     // Clients
     const { count: clientsCount } =
@@ -120,7 +126,10 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user?.id);
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
 
     setTotalClients(clientsCount || 0);
 
@@ -132,7 +141,10 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
         .eq("status", "pending");
 
     setPendingReminders(
@@ -147,7 +159,10 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
         .eq("status", "sent");
 
     setSentReminders(
@@ -162,7 +177,10 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
         .eq("status", "completed");
 
     setCompletedReminders(
@@ -177,7 +195,10 @@ export default function DashboardPage() {
           count: "exact",
           head: true,
         })
-        .eq("user_id", user?.id);
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
 
     setTotalDocuments(
       documentsCount || 0
@@ -188,7 +209,10 @@ export default function DashboardPage() {
       await supabase
         .from("reminders")
         .select("*")
-        .eq("user_id", user?.id);
+        .eq(
+          "workspace_id",
+          workspaceId
+        );
 
     if (reminders) {
 
@@ -253,7 +277,10 @@ export default function DashboardPage() {
       await supabase
         .from("reminders")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
         .neq("status", "completed")
         .order("due_date", {
           ascending: true,
@@ -272,7 +299,10 @@ export default function DashboardPage() {
       await supabase
         .from("clients")
         .select("name, created_at")
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
         .order("created_at", {
           ascending: false,
         })
@@ -285,7 +315,10 @@ export default function DashboardPage() {
         .select(
           "client_name, status, created_at"
         )
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
         .order("created_at", {
           ascending: false,
         })
@@ -298,7 +331,10 @@ export default function DashboardPage() {
         .select(
           "file_name, created_at"
         )
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          workspaceId
+        )
         .order("created_at", {
           ascending: false,
         })
@@ -356,6 +392,9 @@ export default function DashboardPage() {
     setActivities(
       mergedActivities.slice(0, 10)
     );
+  }finally {
+    setLoading(false);
+    }
   }
 
   useEffect(() => {

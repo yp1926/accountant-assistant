@@ -167,12 +167,22 @@ export default function RemindersPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
+    
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("workspace_id")
+        .eq("id", user?.id)
+        .single();
+    
     const { data, error } =
       await supabase
         .from("clients")
         .select("*")
-        .eq("user_id", user?.id);
+        .eq(
+          "workspace_id",
+          profile?.workspace_id
+        );
 
     if (!error && data) {
 
@@ -185,7 +195,14 @@ export default function RemindersPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
+    
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("workspace_id")
+        .eq("id", user?.id)
+        .single();
+    
     const { data, error } =
       await supabase
         .from("reminders")
@@ -198,7 +215,10 @@ export default function RemindersPage() {
             company
           )
         `)
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          profile?.workspace_id
+        )
         .order("id", {
           ascending: false,
         });
@@ -348,7 +368,14 @@ export default function RemindersPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
+    
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("workspace_id")
+        .eq("id", user?.id)
+        .single();
+    
     const { error } =
       await supabase
         .from("reminders")
@@ -367,6 +394,9 @@ export default function RemindersPage() {
             frequency,
             user_id:
               user?.id,
+    
+            workspace_id:
+              profile?.workspace_id,
           },
         ]);
 

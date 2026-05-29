@@ -28,6 +28,9 @@ export default function SignupPage() {
   const [businessName, setBusinessName] =
     useState("");
 
+  const [fullName, setFullName] =
+    useState("");
+
   const [email, setEmail] =
     useState("");
 
@@ -65,12 +68,26 @@ export default function SignupPage() {
     // Create profile
     if (data.user) {
 
-      await supabase
-        .from("profiles")
-        .insert({
-          id: data.user.id,
-          business_name: businessName,
-        });
+      const { error: profileError } =
+        await supabase
+          .from("profiles")
+          .insert({
+            id: data.user.id,
+            business_name: businessName,
+            full_name: fullName,
+            email: email,
+          });
+
+      if (profileError) {
+
+        toast.error(
+          profileError.message
+        );
+
+        setLoading(false);
+
+        return;
+      }
     }
 
     toast.success(
@@ -228,6 +245,29 @@ export default function SignupPage() {
                   }
                   className="w-full border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   placeholder="Your accounting firm"
+                />
+
+              </div>
+
+              <div>
+
+                <label className="block text-sm font-medium mb-2">
+
+                  Full Name
+
+                </label>
+
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) =>
+                    setFullName(
+                      e.target.value
+                    )
+                  }
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  placeholder="John Smith"
                 />
 
               </div>

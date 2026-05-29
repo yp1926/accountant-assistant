@@ -17,6 +17,7 @@ import { createClient } from "@/lib/client";
 import {
   LayoutDashboard,
   Users,
+  UserCog,
   Bell,
   FolderOpen,
   Settings,
@@ -114,6 +115,11 @@ export default function AppLayout({
       name: "Documents",
       href: "/documents",
       icon: FolderOpen,
+    },
+    {
+      name: "Team",
+      href: "/team",
+      icon: UserCog,
     },
     {
       name: "Settings",

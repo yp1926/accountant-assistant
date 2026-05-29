@@ -83,12 +83,22 @@ export default function ClientsPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
+    
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("workspace_id")
+        .eq("id", user?.id)
+        .single();
+    
     const { data, error } =
       await supabase
         .from("clients")
         .select("*")
-        .eq("user_id", user?.id)
+        .eq(
+          "workspace_id",
+          profile?.workspace_id
+        )
         .order("id", {
           ascending: false,
         });
@@ -143,9 +153,16 @@ export default function ClientsPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
+    
+    const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("workspace_id")
+        .eq("id", user?.id)
+        .single();
+    
     setAddingClient(true);
-
+    
     const { error } =
       await supabase
         .from("clients")
@@ -160,6 +177,9 @@ export default function ClientsPage() {
                 : "Individual",
             user_id:
               user?.id,
+    
+            workspace_id:
+              profile?.workspace_id,
           },
         ]);
 
@@ -226,24 +246,35 @@ export default function ClientsPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
+
+      const { data: profile } =
+      await supabase
+        .from("profiles")
+        .select("workspace_id")
+        .eq("id", user?.id)
+        .single();
+
       const formattedClients =
         jsonData.map(
           (row: any) => ({
             name:
               row.name || "",
-
+          
             email:
               row.email || "",
-
+          
             phone:
               row.phone || "",
-
+          
             company:
               row.company ||
               "Individual",
-
+          
             user_id:
               user?.id,
+          
+            workspace_id:
+              profile?.workspace_id,
           })
         );
 
