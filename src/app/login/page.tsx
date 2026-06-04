@@ -8,7 +8,6 @@ import Link from "next/link";
 
 import {
   useRouter,
-  useSearchParams,
 } from "next/navigation";
 
 import { toast } from "sonner";
@@ -25,9 +24,6 @@ export default function LoginPage() {
   const supabase = createClient();
 
   const router = useRouter();
-
-  const searchParams =
-    useSearchParams();
 
   const [email, setEmail] =
     useState("");
@@ -67,13 +63,7 @@ export default function LoginPage() {
       "Login successful!"
     );
 
-    const redirectTo =
-      searchParams.get("redirect");
-
-    router.push(
-      redirectTo ||
-      "/dashboard"
-    );
+    router.push("/dashboard");
   }
 
   return (
