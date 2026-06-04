@@ -13,6 +13,15 @@ import {
   Mail,
 } from "lucide-react";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import { toast } from "sonner";
+
 type TeamMember = {
   id: string;
   role: string;
@@ -32,6 +41,18 @@ export default function TeamPage() {
 
   const [loading, setLoading] =
     useState(true);
+
+  const [inviteOpen, setInviteOpen] =
+    useState(false);
+
+  const [inviteEmail, setInviteEmail] =
+    useState("");
+
+  const [inviteRole, setInviteRole] =
+    useState("accountant");
+
+  const [inviteLink, setInviteLink] =
+    useState("");
 
     async function fetchMembers() {
 
@@ -194,6 +215,97 @@ export default function TeamPage() {
         }
       }
 
+      async function handleCreateInvite() {
+
+        try {
+      
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+      
+          if (!user) return;
+      
+          const { data: profile } =
+            await supabase
+              .from("profiles")
+              .select("workspace_id")
+              .eq("id", user.id)
+              .single();
+      
+          if (!profile?.workspace_id) {
+      
+            toast.error(
+              "Workspace not found"
+            );
+      
+            return;
+          }
+      
+          const token =
+            crypto.randomUUID();
+      
+          const expiresAt =
+            new Date(
+              Date.now() +
+              7 * 24 * 60 * 60 * 1000
+            ).toISOString();
+      
+          const {
+            error,
+          } = await supabase
+            .from(
+              "workspace_invitations"
+            )
+            .insert({
+              workspace_id:
+                profile.workspace_id,
+      
+              email:
+                inviteEmail,
+      
+              role:
+                inviteRole,
+      
+              token,
+      
+              expires_at:
+                expiresAt,
+            });
+      
+          if (error) {
+      
+            toast.error(
+              error.message
+            );
+      
+            return;
+          }
+      
+          const inviteUrl =
+            `${window.location.origin}/invite/${token}`;
+      
+          setInviteLink(
+            inviteUrl
+          );
+      
+          navigator.clipboard.writeText(
+            inviteUrl
+          );
+      
+          toast.success(
+            "Invitation created and copied to clipboard"
+          );
+      
+        } catch (error) {
+      
+          console.error(error);
+      
+          toast.error(
+            "Failed to create invitation"
+          );
+        }
+      }
+
   useEffect(() => {
 
     fetchMembers();
@@ -282,6 +394,9 @@ export default function TeamPage() {
           </div>
 
           <button
+            onClick={() =>
+              setInviteOpen(true)
+            }
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-semibold"
           >
 
@@ -407,6 +522,114 @@ export default function TeamPage() {
         )}
 
       </div>
+
+      <Dialog
+        open={inviteOpen}
+        onOpenChange={(open) => {
+
+          setInviteOpen(open);
+
+          if (!open) {
+
+            setInviteEmail("");
+            setInviteRole("accountant");
+            setInviteLink("");
+          }
+        }}
+      >
+
+  <DialogContent>
+
+    <DialogHeader>
+
+      <DialogTitle>
+
+        Invite Team Member
+
+      </DialogTitle>
+
+    </DialogHeader>
+
+    <div className="space-y-4">
+
+      <div>
+
+        <label className="block text-sm font-medium mb-2">
+
+          Email
+
+        </label>
+
+        <input
+          type="email"
+          value={inviteEmail}
+          onChange={(e) =>
+            setInviteEmail(
+              e.target.value
+            )
+          }
+          className="w-full border border-gray-300 rounded-xl px-4 py-3"
+          placeholder="john@example.com"
+        />
+
+      </div>
+
+      <div>
+
+        <label className="block text-sm font-medium mb-2">
+
+          Role
+
+        </label>
+
+        <select
+          value={inviteRole}
+          onChange={(e) =>
+            setInviteRole(
+              e.target.value
+            )
+          }
+          className="w-full border border-gray-300 rounded-xl px-4 py-3"
+        >
+
+          <option value="accountant">
+            Accountant
+          </option>
+
+          <option value="assistant">
+            Assistant
+          </option>
+
+        </select>
+
+      </div>
+
+      <button
+        onClick={
+          handleCreateInvite
+        }
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold"
+      >
+
+        Create Invite
+
+      </button>
+
+      {inviteLink && (
+
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm break-all">
+
+          {inviteLink}
+
+        </div>
+
+        )}
+
+    </div>
+
+  </DialogContent>
+
+</Dialog>
 
     </main>
   );
