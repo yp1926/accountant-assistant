@@ -29,6 +29,8 @@ import {
   X,
 } from "lucide-react";
 
+import FeedbackButton from "@/components/ui/feedback-button";
+
 export default function AppLayout({
   children,
 }: {
@@ -476,6 +478,8 @@ export default function AppLayout({
             <div className="w-full max-w-full">
 
               {children}
+
+              <FeedbackButton />
 
             </div>
 

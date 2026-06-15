@@ -54,24 +54,16 @@ export default function TeamPage() {
   const [inviteLink, setInviteLink] =
     useState("");
 
+  const [pendingInvites, setPendingInvites] =
+    useState<any[]>([]);
+
     async function fetchMembers() {
 
         try {
       
           const {
             data: { user },
-            error: userError,
           } = await supabase.auth.getUser();
-      
-          console.log(
-            "USER",
-            user
-          );
-      
-          console.log(
-            "USER ERROR",
-            userError
-          );
       
           if (!user) {
       
@@ -82,22 +74,11 @@ export default function TeamPage() {
       
           const {
             data: profile,
-            error: profileError,
           } = await supabase
             .from("profiles")
             .select("workspace_id")
             .eq("id", user.id)
             .single();
-      
-          console.log(
-            "PROFILE",
-            profile
-          );
-      
-          console.log(
-            "PROFILE ERROR",
-            profileError
-          );
       
           if (
             !profile?.workspace_id
@@ -125,16 +106,6 @@ export default function TeamPage() {
               }
             );
           
-          console.log(
-            "MEMBERS DATA",
-            membersData
-          );
-          
-          console.log(
-            "MEMBERS ERROR",
-            membersError
-          );
-          
           if (
             membersError ||
             !membersData
@@ -153,7 +124,6 @@ export default function TeamPage() {
           
           const {
             data: profilesData,
-            error: profilesError,
           } = await supabase
             .from("profiles")
             .select(`
@@ -165,16 +135,6 @@ export default function TeamPage() {
               "id",
               userIds
             );
-          
-          console.log(
-            "PROFILES DATA",
-            profilesData
-          );
-          
-          console.log(
-            "PROFILES ERROR",
-            profilesError
-          );
           
           const profileMap =
             Object.fromEntries(
@@ -211,6 +171,69 @@ export default function TeamPage() {
         } finally {
       
           setLoading(false);
+      
+        }
+      }
+
+      async function fetchInvitations() {
+
+        try {
+      
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+      
+          if (!user) return;
+      
+          const { data: profile } =
+            await supabase
+              .from("profiles")
+              .select("workspace_id")
+              .eq("id", user.id)
+              .single();
+      
+          if (!profile?.workspace_id) {
+            return;
+          }
+      
+          const {
+            data,
+            error,
+          } = await supabase
+            .from("workspace_invitations")
+            .select("*")
+            .eq(
+              "workspace_id",
+              profile.workspace_id
+            )
+            .eq(
+              "accepted",
+              false
+            )
+            .order(
+              "created_at",
+              {
+                ascending: false,
+              }
+            );
+      
+          if (error) {
+      
+            console.error(
+              "INVITES ERROR",
+              error
+            );
+      
+            return;
+          }
+      
+          setPendingInvites(
+            data || []
+          );
+      
+        } catch (err) {
+      
+          console.error(err);
       
         }
       }
@@ -287,6 +310,8 @@ export default function TeamPage() {
           setInviteLink(
             inviteUrl
           );
+
+          fetchInvitations();
       
           navigator.clipboard.writeText(
             inviteUrl
@@ -306,11 +331,86 @@ export default function TeamPage() {
         }
       }
 
-  useEffect(() => {
+      async function handleCancelInvite(
+        inviteId: string
+      ) {
+      
+        const confirmed =
+          window.confirm(
+            "Are you sure you want to cancel this invitation?"
+          );
+      
+        if (!confirmed) {
+          return;
+        }
+      
+        try {
+      
+          const {
+            error,
+          } = await supabase
+            .from(
+              "workspace_invitations"
+            )
+            .delete()
+            .eq(
+              "id",
+              inviteId
+            );
+      
+          if (error) {
+      
+            toast.error(
+              error.message
+            );
+      
+            return;
+          }
+      
+          setPendingInvites(
+            (current) =>
+              current.filter(
+                (invite) =>
+                  invite.id !== inviteId
+              )
+          );
+      
+          toast.success(
+            "Invitation cancelled"
+          );
+      
+        } catch (error) {
+      
+          console.error(error);
+      
+          toast.error(
+            "Failed to cancel invitation"
+          );
+        }
+      }
 
-    fetchMembers();
+      function handleCopyInviteLink(
+        token: string
+      ) {
+      
+        const inviteUrl =
+          `${window.location.origin}/invite/${token}`;
+      
+        navigator.clipboard.writeText(
+          inviteUrl
+        );
+      
+        toast.success(
+          "Invite link copied"
+        );
+      }
 
-  }, []);
+      useEffect(() => {
+
+        fetchMembers();
+        fetchInvitations();
+      
+      }, []);
 
   return (
     <main className="space-y-8">
@@ -516,6 +616,117 @@ export default function TeamPage() {
               </tbody>
 
             </table>
+
+          </div>
+
+        )}
+
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-md border border-gray-100 p-6 sm:p-8">
+
+        <div className="mb-6">
+
+          <h2 className="text-2xl font-bold">
+
+            Pending Invitations
+
+          </h2>
+
+          <p className="text-gray-500 mt-1">
+
+            Invitations waiting to be accepted.
+
+          </p>
+
+        </div>
+
+        {pendingInvites.length === 0 ? (
+
+          <p className="text-gray-500">
+
+            No pending invitations.
+
+          </p>
+
+        ) : (
+
+          <div className="space-y-4">
+
+            {pendingInvites.map(
+              (invite) => (
+
+                <div
+                  key={invite.id}
+                  className="border rounded-2xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                >
+
+                  <div>
+
+                    <p className="font-semibold">
+
+                      {invite.email}
+
+                    </p>
+
+                    <p className="text-sm text-gray-500">
+
+                      {invite.role}
+
+                    </p>
+
+                  </div>
+
+                  <div className="flex items-center gap-3">
+
+                    <div className="text-sm text-gray-500">
+
+                      Expires:
+
+                      {" "}
+
+                      {new Date(
+                        invite.expires_at
+                      ).toLocaleDateString()}
+
+                    </div>
+
+                    <div className="flex items-center gap-4">
+
+                      <button
+                        onClick={() =>
+                          handleCopyInviteLink(
+                            invite.token
+                          )
+                        }
+                        className="text-blue-600 hover:text-blue-700 font-medium"
+                      >
+
+                        Copy Link
+
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          handleCancelInvite(
+                            invite.id
+                          )
+                        }
+                        className="text-red-600 hover:text-red-700 font-medium"
+                      >
+
+                        Cancel
+
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              )
+            )}
 
           </div>
 
